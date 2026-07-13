@@ -1,0 +1,13 @@
+{
+  "yumina": {
+    "key_path": "Software\\Will\\Yumina",
+    "game_exe": "Yumina.exe",
+    "registry_data": {
+      "Install": ["REG_SZ", "{install_dir}\\"],
+      "Data": ["REG_SZ", "{install_dir}\\DATA\\"],
+      "Voice": ["REG_SZ", "{install_dir}\\VOICE\\"],
+      "Patch": ["REG_DWORD", "0"],
+      "InstallType": ["REG_SZ", "2"]
+    }
+  }
+}

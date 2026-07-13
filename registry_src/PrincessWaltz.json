@@ -1,5 +1,5 @@
 {
-  "PrincessWaltz": {
+  "princesswaltz": {
     "key_path": "Software\\Will\\princesswaltz_us",
     "game_exe": ["prwaltz-nodrm.exe", "prwaltz.exe"],
     "registry_data": {

@@ -176,7 +176,8 @@ def set_registry_keys(game_dir: Path, backup_dir: Path, config: dict):
             data_type = winreg.REG_SZ
             fallback_bytes = str(default_val)
 
-        is_path_key = default_val in ["{install_dir}", "{install_src}", ".\\"]
+        # UPDATED: Checks if the string contains a token or matches the relative dot-slash path
+        is_path_key = "{install_dir}" in str(default_val) or "{install_src}" in str(default_val) or str(default_val) == ".\\"
 
         backup_file = backup_dir / f"{value_name}.regdata"
         if backup_file.exists() and not is_path_key:
@@ -190,10 +191,11 @@ def set_registry_keys(game_dir: Path, backup_dir: Path, config: dict):
             except Exception:
                 prepared_value = fallback_bytes
         else:
-            if str(default_val) == "{install_dir}":
-                prepared_value = str(game_dir)
-            elif str(default_val) == "{install_src}":
-                prepared_value = str(game_dir.parent)
+            # UPDATED: Replaces strict matching with the flexible string replacement logic
+            if "{install_dir}" in str(default_val):
+                prepared_value = str(default_val).replace("{install_dir}", str(game_dir))
+            elif "{install_src}" in str(default_val):
+                prepared_value = str(default_val).replace("{install_src}", str(game_dir.parent))
             else:
                 prepared_value = fallback_bytes
 
