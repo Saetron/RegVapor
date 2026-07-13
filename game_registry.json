@@ -1,4 +1,34 @@
 {
+  "chain_the_lost_footprints": {
+    "key_path": "Software\\ZYX\\CHAINUS",
+    "game_exe": "CHAINUS.EXE",
+    "registry_data": {
+      "VideoDir": [
+        "REG_SZ",
+        ".\\"
+      ],
+      "VoiceDir": [
+        "REG_SZ",
+        ".\\"
+      ],
+      "MusicDir": [
+        "REG_SZ",
+        ".\\"
+      ],
+      "SaveDir": [
+        "REG_SZ",
+        ".\\"
+      ],
+      "InstallDir": [
+        "REG_SZ",
+        ".\\"
+      ],
+      "DataDir": [
+        "REG_SZ",
+        ".\\"
+      ]
+    }
+  },
   "crescendo": {
     "key_path": "Software\\DO\\CRESUS",
     "game_exe": "CRESUS.EXE",
