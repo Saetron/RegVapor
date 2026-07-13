@@ -12,8 +12,9 @@ from pathlib import Path
 # ==============================================================================
 # BASE CONFIGURATION
 # ==============================================================================
-__version__ = "0.4.3"
+__version__ = "0.4.4"
 GITHUB_JSON_URL = "https://raw.githubusercontent.com/Saetron/RegVapor/refs/heads/main/game_registry.json"
+LOCAL_JSON_NAME = "RegVapor_config.json"
 ID_FILE_NAME = "game_id.txt"
 BACKUP_DIR_NAME = "registry"
 # ==============================================================================
@@ -120,45 +121,58 @@ def select_game_id_gui(available_ids: list) -> str | None:
     user32.DialogBoxIndirectParamW(0, ctypes.byref(dialog_template), 0, dialog_proc, 0)
     return chosen_id[0]
 
-def get_game_id(base_dir: Path, master_config: dict) -> str | None:
-    """Reads the game identifier string or prompts user to select one via native GUI if missing."""
+def read_saved_game_id(base_dir: Path) -> str | None:
+    """Reads and returns the game identifier if it exists and is configured."""
     id_file = base_dir / ID_FILE_NAME
-    
-    # Check if file exists and has a valid ID
     if id_file.exists():
         with open(id_file, "r", encoding="utf-8") as f:
             current_id = f.read().strip()
         if current_id and current_id != "ENTER_GAME_ID_HERE":
             return current_id
-
-    # If missing or unconfigured, use GUI dropdown selection
-    if not master_config:
-        ctypes.windll.user32.MessageBoxW(
-            0,
-            "Could not fetch remote configuration database, and no local configuration file exists.",
-            "RegVapor Launcher - Connection Error",
-            0x10 | 0x0
-        )
-        return None
-
-    available_ids = sorted(list(master_config.keys()))
-    chosen_id = select_game_id_gui(available_ids)
-
-    if chosen_id:
-        with open(id_file, "w", encoding="utf-8") as f:
-            f.write(chosen_id)
-        time.sleep(0.2)
-        return chosen_id
-        
     return None
 
-def fetch_remote_config() -> dict:
-    """Fetches the unified database directly from the GitHub repository."""
+def fetch_and_cache_config(base_dir: Path, target_game_id: str | None) -> dict:
+    """
+    Attempts to fetch the database from GitHub. 
+    - If target_game_id is known, caches ONLY that game's data to RegVapor_game.json.
+    - If target_game_id is unknown (first run), returns the full database so the user can choose.
+    - If offline, falls back to the local RegVapor_game.json.
+    """
+    local_json_path = base_dir / LOCAL_JSON_NAME
+    
+    # Try fetching online
     try:
         with urllib.request.urlopen(GITHUB_JSON_URL, timeout=5) as response:
-            return json.loads(response.read().decode())
-    except Exception:
-        return {}
+            full_data = json.loads(response.read().decode())
+            
+            if target_game_id:
+                if target_game_id in full_data:
+                    # Filter data to only include the target game
+                    filtered_data = {target_game_id: full_data[target_game_id]}
+                    with open(local_json_path, "w", encoding="utf-8") as f:
+                        json.dump(filtered_data, f, indent=4)
+                    print(f"Successfully updated and cached configuration for '{target_game_id}' only.")
+                    return filtered_data
+                else:
+                    print(f"Warning: Selected game '{target_game_id}' not found in remote registry.")
+            else:
+                # If game_id is not set yet, we return the full dataset so the GUI can display it.
+                # We won't save the massive JSON to disk; we'll wait until they choose a game.
+                return full_data
+    except Exception as e:
+        print(f"Network offline or GitHub unreachable ({e}). Searching for local configuration backup...")
+        
+    # Offline fallback logic
+    if local_json_path.exists():
+        try:
+            with open(local_json_path, "r", encoding="utf-8") as f:
+                local_data = json.load(f)
+            print(f"Loaded cached fallback configuration from: {LOCAL_JSON_NAME}")
+            return local_data
+        except Exception as e:
+            print(f"Failed to read local fallback {LOCAL_JSON_NAME}: {e}")
+            
+    return {}
 
 def load_session_font(font_path: Path) -> bool:
     """Loads a custom font into the system font table for the current user session."""
@@ -328,15 +342,51 @@ def main():
     env["LOCALAPPDATA"] = str(local_appdata)
     env["APPDATA"] = str(roaming_appdata)
 
-    master_config = fetch_remote_config()
-    game_id = get_game_id(base_dir, master_config)
+    # 1. Read existing configuration profile id if already set
+    game_id = read_saved_game_id(base_dir)
+
+    # 2. Grab the relevant configuration dataset
+    master_config = fetch_and_cache_config(base_dir, game_id)
+
+    # 3. If missing or unconfigured profile id, launch GUI fallback 
     if not game_id or game_id == "ENTER_GAME_ID_HERE":
-        return
+        if not master_config:
+            ctypes.windll.user32.MessageBoxW(
+                0,
+                "Could not fetch configuration database (online or offline fallback), and no local configuration file exists.",
+                "RegVapor Launcher - Error",
+                0x10 | 0x0
+            )
+            return
+
+        available_ids = sorted(list(master_config.keys()))
+        game_id = select_game_id_gui(available_ids)
+
+        if game_id:
+            # Save the text identifier locally
+            id_file = base_dir / ID_FILE_NAME
+            with open(id_file, "w", encoding="utf-8") as f:
+                f.write(game_id)
+            
+            # Now cache ONLY the chosen configuration details to disk
+            if game_id in master_config:
+                filtered_data = {game_id: master_config[game_id]}
+                local_json_path = base_dir / LOCAL_JSON_NAME
+                try:
+                    with open(local_json_path, "w", encoding="utf-8") as f:
+                        json.dump(filtered_data, f, indent=4)
+                    master_config = filtered_data
+                    print(f"Cached configuration for '{game_id}' locally to {LOCAL_JSON_NAME}.")
+                except Exception as e:
+                    print(f"Failed to write local backup cache: {e}")
+            time.sleep(0.2)
+        else:
+            return
 
     print(f"RegVapor Launcher v{__version__} initializing for ID: {game_id}")
     
     if not master_config or game_id not in master_config:
-        print(f"Error: Configurations for '{game_id}' not found on remote storage target.")
+        print(f"Error: Configurations for '{game_id}' not found.")
         return
 
     config = master_config[game_id]
