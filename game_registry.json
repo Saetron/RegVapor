@@ -1,109 +1,4 @@
 {
-  "princesswaltz": {
-    "key_path": "Software\\Will\\princesswaltz_us",
-    "game_exe": [
-      "prwaltz-nodrm.exe",
-      "prwaltz.exe"
-    ],
-    "registry_data": {
-      "InstallSrc": [
-        "REG_SZ",
-        "{install_src}"
-      ],
-      "InstallDir": [
-        "REG_SZ",
-        "{install_dir}"
-      ],
-      "FontName": [
-        "REG_SZ",
-        "Courier"
-      ],
-      "D3D.DisableTnL": [
-        "REG_BINARY",
-        "00 00 00 00"
-      ],
-      "D3D.Tex16": [
-        "REG_BINARY",
-        "00 00 00 00"
-      ],
-      "WndPos": [
-        "REG_BINARY",
-        "6B 03 00 00 93 01 00 00"
-      ],
-      "InstallType": [
-        "REG_BINARY",
-        "02 00 00 00"
-      ],
-      "AutoSkip": [
-        "REG_BINARY",
-        "00 00 00 00"
-      ],
-      "DisplayMode": [
-        "REG_BINARY",
-        "00 00 00 00"
-      ],
-      "FontEdge": [
-        "REG_BINARY",
-        "01 00 00 00"
-      ],
-      "MsgSpeed": [
-        "REG_BINARY",
-        "01 00 00 00"
-      ],
-      "MsgPos": [
-        "REG_BINARY",
-        "28 00 00 00 94 01 00 00"
-      ],
-      "DisableCursor": [
-        "REG_BINARY",
-        "00 00 00 00"
-      ],
-      "Mute": [
-        "REG_BINARY",
-        "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
-      ],
-      "Volume": [
-        "REG_BINARY",
-        "58 02 00 00 E8 03 00 00 E8 03 00 00 E8 03 00 00"
-      ],
-      "SystemDraw": [
-        "REG_BINARY",
-        "01 00 00 00"
-      ],
-      "EnableJoyPad": [
-        "REG_BINARY",
-        "01 00 00 00"
-      ],
-      "EffectSkip": [
-        "REG_BINARY",
-        "00 00 00 00"
-      ],
-      "AutoMsg": [
-        "REG_BINARY",
-        "07 00 00 00"
-      ],
-      "SkipType": [
-        "REG_BINARY",
-        "01 00 00 00"
-      ],
-      "RButtonMode": [
-        "REG_BINARY",
-        "00 00 00 00"
-      ],
-      "UseFilt": [
-        "REG_BINARY",
-        "01 00 00 00"
-      ],
-      "DeactivePlay": [
-        "REG_BINARY",
-        "01 00 00 00"
-      ],
-      "DisableQuick": [
-        "REG_BINARY",
-        "00 00 00 00"
-      ]
-    }
-  },
   "crescendo": {
     "key_path": "Software\\DO\\CRESUS",
     "game_exe": "CRESUS.EXE",
@@ -213,6 +108,111 @@
     "game_exe": "lcsebody.exe",
     "custom_font": "VeraMoBd.ttf",
     "registry_data": {}
+  },
+  "princesswaltz": {
+    "key_path": "Software\\Will\\princesswaltz_us",
+    "game_exe": [
+      "prwaltz-nodrm.exe",
+      "prwaltz.exe"
+    ],
+    "registry_data": {
+      "InstallSrc": [
+        "REG_SZ",
+        "{install_src}"
+      ],
+      "InstallDir": [
+        "REG_SZ",
+        "{install_dir}"
+      ],
+      "FontName": [
+        "REG_SZ",
+        "Courier"
+      ],
+      "D3D.DisableTnL": [
+        "REG_BINARY",
+        "00 00 00 00"
+      ],
+      "D3D.Tex16": [
+        "REG_BINARY",
+        "00 00 00 00"
+      ],
+      "WndPos": [
+        "REG_BINARY",
+        "6B 03 00 00 93 01 00 00"
+      ],
+      "InstallType": [
+        "REG_BINARY",
+        "02 00 00 00"
+      ],
+      "AutoSkip": [
+        "REG_BINARY",
+        "00 00 00 00"
+      ],
+      "DisplayMode": [
+        "REG_BINARY",
+        "00 00 00 00"
+      ],
+      "FontEdge": [
+        "REG_BINARY",
+        "01 00 00 00"
+      ],
+      "MsgSpeed": [
+        "REG_BINARY",
+        "01 00 00 00"
+      ],
+      "MsgPos": [
+        "REG_BINARY",
+        "28 00 00 00 94 01 00 00"
+      ],
+      "DisableCursor": [
+        "REG_BINARY",
+        "00 00 00 00"
+      ],
+      "Mute": [
+        "REG_BINARY",
+        "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+      ],
+      "Volume": [
+        "REG_BINARY",
+        "58 02 00 00 E8 03 00 00 E8 03 00 00 E8 03 00 00"
+      ],
+      "SystemDraw": [
+        "REG_BINARY",
+        "01 00 00 00"
+      ],
+      "EnableJoyPad": [
+        "REG_BINARY",
+        "01 00 00 00"
+      ],
+      "EffectSkip": [
+        "REG_BINARY",
+        "00 00 00 00"
+      ],
+      "AutoMsg": [
+        "REG_BINARY",
+        "07 00 00 00"
+      ],
+      "SkipType": [
+        "REG_BINARY",
+        "01 00 00 00"
+      ],
+      "RButtonMode": [
+        "REG_BINARY",
+        "00 00 00 00"
+      ],
+      "UseFilt": [
+        "REG_BINARY",
+        "01 00 00 00"
+      ],
+      "DeactivePlay": [
+        "REG_BINARY",
+        "01 00 00 00"
+      ],
+      "DisableQuick": [
+        "REG_BINARY",
+        "00 00 00 00"
+      ]
+    }
   },
   "snow_drop": {
     "key_path": "Software\\Will\\SnowDrop",
