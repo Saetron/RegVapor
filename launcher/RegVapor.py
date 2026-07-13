@@ -10,7 +10,7 @@ from pathlib import Path
 # ==============================================================================
 # BASE CONFIGURATION
 # ==============================================================================
-__version__ = "0.3.5"  # Incremented version for multi-exe support
+__version__ = "0.3.6"
 GITHUB_JSON_URL = "https://raw.githubusercontent.com/Saetron/RegVapor/refs/heads/main/game_registry.json"
 ID_FILE_NAME = "game_id.txt"
 BACKUP_DIR_NAME = "registry"
@@ -282,12 +282,15 @@ def main():
     env["LOCALAPPDATA"] = str(local_appdata)
     env["APPDATA"] = str(roaming_appdata)
 
-    game_id = get_game_id(base_dir)
+    # Fetch the config database first so it can be used for the dropdown UI if needed
+    master_config = fetch_remote_config()
+
+    # Pass master_config to the function as defined
+    game_id = get_game_id(base_dir, master_config)
     if not game_id or game_id == "ENTER_GAME_ID_HERE":
         return
 
     print(f"RegVapor Launcher v{__version__} initializing for ID: {game_id}")
-    master_config = fetch_remote_config()
     
     if not master_config or game_id not in master_config:
         print(f"Error: Configurations for '{game_id}' not found on remote storage target.")
