@@ -278,7 +278,11 @@
         "REG_BINARY",
         "0C 00 00 00 48 01 00 00"
       ]
-    }
+    },
+    "backup_files": [
+      "CFGMGR32.DLL",
+      "SETUPAPI.DLL"
+    ]
   },
   "we_love_master": {
     "key_path": "",
