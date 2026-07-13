@@ -180,20 +180,13 @@ def fetch_and_cache_config(base_dir: Path, target_game_id: str | None) -> dict:
             
     return {}
 
-def check_and_apply_updates(base_dir: Path, master_config: dict):
-    """
-    Checks the remote database configuration for application updates.
-    Verifies downloaded files securely via SHA-256 before staging updates.
-    """
-    # Verify we are running as a compiled .exe and not a raw script
-    if not sys.argv[0].endswith(".exe"):
-        return
-
+def check_for_updates(master_config: dict):
+    """Checks for updates and notifies the user with a download link."""
     remote_version = master_config.get("__metadata__", {}).get("latest_launcher_version")
     if not remote_version:
         return
 
-    # Simple semantic patch comparison helper
+    # Simple semantic patch comparison
     def parse_ver(v_str):
         return [int(x) for x in v_str.split(".")]
 
@@ -203,62 +196,16 @@ def check_and_apply_updates(base_dir: Path, master_config: dict):
     except Exception:
         return
 
-    current_exe_path = Path(sys.argv[0]).resolve()
-    temp_update_exe = base_dir / "RegVapor_update.exe"
-
-    # Prompt user for permission to update
-    MB_YESNO = 0x04
-    MB_ICONQUESTION = 0x20
-    IDYES = 6
-    ans = ctypes.windll.user32.MessageBoxW(
-        0,
-        f"A new version of RegVapor is available (v{remote_version}).\nWould you like to automatically update?",
-        "RegVapor Update Available",
-        MB_YESNO | MB_ICONQUESTION
-    )
-    if ans != IDYES:
-        return
-
-    print(f"Downloading new update version v{remote_version}...")
-    try:
-        # 1. Download updated binary
-        urllib.request.urlretrieve(GITHUB_EXE_URL, temp_update_exe)
-        
-        # 2. Securely verify file integrity via remote SHA256 checksum
-        with urllib.request.urlopen(GITHUB_SHA_URL, timeout=5) as response:
-            expected_sha = response.read().decode().strip().split()[0].lower()
-            
-        sha256_hash = hashlib.sha256()
-        with open(temp_update_exe, "rb") as f:
-            for byte_block in iter(lambda: f.read(4096), b""):
-                sha256_hash.update(byte_block)
-        calculated_sha = sha256_hash.hexdigest().lower()
-
-        if calculated_sha != expected_sha:
-            raise ValueError("SHA-256 signature mismatch. The downloaded binary may have been tampered with.")
-
-        print("Update file successfully downloaded and cryptographically verified.")
-
-        # 3. Write a self-deleting twin-process command script to hot-swap binaries
-        updater_cmd = f'timeout /t 1 /nobreak > nul && del "{current_exe_path}" && move "{temp_update_exe}" "{current_exe_path}" && start "" "{current_exe_path}"'
-        
-        # Spawn detached process that carries out the file swaps once this host process exits
-        subprocess.Popen(updater_cmd, shell=True, creationflags=subprocess.CREATE_NEW_CONSOLE)
-        print("Staged handoff launcher updates. Exiting engine...")
-        sys.exit(0)
-
-    except Exception as e:
-        if temp_update_exe.exists():
-            try:
-                temp_update_exe.unlink()
-            except Exception:
-                pass
-        ctypes.windll.user32.MessageBoxW(
-            0,
-            f"Failed to update RegVapor securely:\n{e}",
-            "Update Error",
-            0x10 | 0x0
-        )
+    # Notify user without auto-updating
+    msg = (f"A new version of RegVapor is available (v{remote_version}).\n\n"
+           f"Please download the update here:\n{GITHUB_EXE_URL.replace('/latest/download/', '/releases/latest')}\n\n"
+           "Would you like to open the release page now?")
+    
+    # MB_YESNO | MB_ICONINFORMATION
+    ans = ctypes.windll.user32.MessageBoxW(0, msg, "RegVapor Update Available", 0x04 | 0x40)
+    
+    if ans == 6: # IDYES
+        os.startfile(GITHUB_EXE_URL.replace('/latest/download/', '/releases/latest'))
 
 def load_session_font(font_path: Path) -> bool:
     """Loads a custom font into the system font table for the current user session."""

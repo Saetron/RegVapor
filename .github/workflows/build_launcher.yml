@@ -41,18 +41,6 @@ jobs:
       run: |
         pyinstaller --noconsole --onefile --name=RegVapor launcher/RegVapor.py
 
-    - name: Generate SHA-256 Checksum
-      shell: powershell
-      run: |
-          # Calculate the hash string in lowercase
-          $hash = (Get-FileHash dist/RegVapor.exe -Algorithm SHA256).Hash.ToLower()
-          # Create the file content string
-          $content = "$hash  RegVapor.exe"
-          # Write the content as raw UTF-8 bytes to ensure no BOM is added
-          $bytes = [System.Text.Encoding]::UTF8.GetBytes($content)
-          [System.IO.File]::WriteAllBytes("dist/RegVapor.exe.sha256", $bytes)
-          Write-Output "Generated SHA-256: $hash"
-
     - name: Create Tag and GitHub Release
       uses: softprops/action-gh-release@v2
       with:
@@ -64,8 +52,6 @@ jobs:
           Changes detected in the `launcher/` path structure have been built.
         draft: false
         prerelease: false
-        files: |
-          dist/RegVapor.exe
-          dist/RegVapor.exe.sha256
+        files: dist/RegVapor.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
