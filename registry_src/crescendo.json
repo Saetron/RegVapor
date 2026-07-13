@@ -1,0 +1,17 @@
+{
+  "crescendo": {
+    "key_path": "Software\\DO\\CRESUS",
+    "game_exe": "CRESUS.EXE",
+    "registry_data": {
+      "MusicDir": ["REG_SZ", ".\\"],
+      "SaveDir": ["REG_SZ", ".\\"],
+      "UserSetup": ["REG_BINARY", "01 00 00 00 00 00 00 00 00 00 00 00 32"],
+      "WndPos": ["REG_BINARY", "00 00 00 00 00 00 00 00"],
+      "DataDir": ["REG_SZ", ".\\"],
+      "GraphDir": ["REG_SZ", ".\\"],
+      "VideoDir": ["REG_SZ", ".\\"],
+      "VoiceDir": ["REG_SZ", ".\\"],
+      "InstallDir": ["REG_SZ", ".\\"]
+    }
+  }
+}

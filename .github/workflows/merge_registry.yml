@@ -1,0 +1,64 @@
+name: Merge Game Registry Files
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'registry_src/**'
+
+permissions:
+  contents: write
+
+jobs:
+  merge-json:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-python-version: '3.x'
+
+    - name: Merge individual JSON files
+      run: |
+        python -c '
+        import os
+        import json
+
+        src_dir = "registry_src"
+        output_file = "game_registry.json"
+        master_dict = {}
+
+        if os.path.exists(src_dir):
+            for filename in sorted(os.listdir(src_dir)):
+                if filename.endswith(".json"):
+                    file_path = os.path.join(src_dir, filename)
+                    try:
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            data = json.load(f)
+                            # Merge dictionaries together
+                            master_dict.update(data)
+                        print(f"Successfully merged: {filename}")
+                    except Exception as e:
+                        print(f"Error parsing {filename}: {e}")
+
+        with open(output_file, "w", encoding="utf-8") as out:
+            json.dump(master_dict, out, indent=2, ensure_ascii=False)
+        '
+
+    - name: Commit and Push changes
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        
+        if git diff --quiet game_registry.json; then
+          echo "No changes detected in compiled file."
+        else
+          git add game_registry.json
+          git commit -m "Automated update: Compiled master game registry JSON"
+          git push
+        fi
