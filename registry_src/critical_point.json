@@ -1,7 +1,7 @@
 {
   "critical_point": {
     "key_path": "Software\\Will\\CriticalPoint",
-    "game_exe": "CriticalPoint.exe",
+    "game_exe": "CRITICAL.exe",
     "registry_data": {
       "FontEdge": ["REG_BINARY", "00 00 00 00"],
       "MsgWnd": ["REG_BINARY", "00 00 00 00"],
