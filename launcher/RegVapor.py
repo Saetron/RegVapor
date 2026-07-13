@@ -16,23 +16,97 @@ ID_FILE_NAME = "game_id.txt"
 BACKUP_DIR_NAME = "registry"
 # ==============================================================================
 
-def get_game_id(base_dir: Path) -> str | None:
-    """Reads the game identifier string or auto-creates a template if missing."""
+def select_game_id_gui(available_ids: list) -> str | None:
+    """Invokes a native Windows selection dropdown using a lightweight PowerShell script wrapper."""
+    # Convert choices array to a formatting string safe for PowerShell array initialization
+    choices_array = ",".join([f"'{uid}'" for uid in available_ids])
+    
+    ps_script = f"""
+    Add-Type -AssemblyName System.Windows.Forms
+    Add-Type -AssemblyName System.Drawing
+
+    $form = New-Object System.Windows.Forms.Form
+    $form.Text = "RegVapor - Select Configuration"
+    $form.Size = New-Object System.Drawing.Size(420,180)
+    $form.StartPosition = "CenterScreen"
+    $form.FormBorderStyle = "FixedDialog"
+    $form.MaximizeBox = $false
+    $form.MinimizeBox = $false
+    $form.TopMost = $true
+
+    $label = New-Object System.Windows.Forms.Label
+    $label.Location = New-Object System.Drawing.Point(20,15)
+    $label.Size = New-Object System.Drawing.Size(360,35)
+    $label.Text = "No local configuration profile found.`nSelect a configuration from the remote master index:"
+    $label.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+    $form.Controls.Add($label)
+
+    $comboBox = New-Object System.Windows.Forms.ComboBox
+    $comboBox.Location = New-Object System.Drawing.Point(20,55)
+    $comboBox.Size = New-Object System.Drawing.Size(360,25)
+    $comboBox.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
+    
+    $choices = @({choices_array})
+    foreach ($choice in $choices) {{ [void]$comboBox.Items.Add($choice) }}
+    if ($comboBox.Items.Count -gt 0) {{ $comboBox.SelectedIndex = 0 }}
+    $form.Controls.Add($comboBox)
+
+    $button = New-Object System.Windows.Forms.Button
+    $button.Location = New-Object System.Drawing.Point(150,95)
+    $button.Size = New-Object System.Drawing.Size(120,30)
+    $button.Text = "Confirm & Save"
+    $button.DialogResult = [System.Windows.Forms.DialogResult]::OK
+    $form.AcceptButton = $button
+    $form.Controls.Add($button)
+
+    $result = $form.ShowDialog()
+    if ($result -eq [System.Windows.Forms.DialogResult]::OK) {{
+        Write-Output $comboBox.SelectedItem
+    }}
+    """
+    try:
+        # Launch PowerShell silently to draw the window elements
+        process = subprocess.run(
+            ["powershell", "-NoProfile", "-Command", ps_script],
+            capture_output=True,
+            text=True,
+            creationflags=subprocess.CREATE_NO_WINDOW
+        )
+        output = process.stdout.strip()
+        return output if output in available_ids else None
+    except Exception:
+        return None
+
+def get_game_id(base_dir: Path, master_config: dict) -> str | None:
+    """Reads the game identifier string or prompts user to select one via native GUI if missing."""
     id_file = base_dir / ID_FILE_NAME
-    if not id_file.exists():
-        with open(id_file, "w", encoding="utf-8") as f:
-            f.write("ENTER_GAME_ID_HERE")
-            
+    
+    # Check if file exists and has a valid ID
+    if id_file.exists():
+        with open(id_file, "r", encoding="utf-8") as f:
+            current_id = f.read().strip()
+        if current_id and current_id != "ENTER_GAME_ID_HERE":
+            return current_id
+
+    # If missing or unconfigured, use GUI dropdown selection
+    if not master_config:
         ctypes.windll.user32.MessageBoxW(
-            0, 
-            f"Configuration file '{ID_FILE_NAME}' was missing.\n\nA template has been created. Please open it and set your Game ID before running the launcher again.", 
-            "RegVapor Launcher - Missing Configuration", 
+            0,
+            "Could not fetch remote configuration database, and no local configuration file exists.",
+            "RegVapor Launcher - Connection Error",
             0x10 | 0x0
         )
         return None
+
+    available_ids = sorted(list(master_config.keys()))
+    chosen_id = select_game_id_gui(available_ids)
+
+    if chosen_id:
+        with open(id_file, "w", encoding="utf-8") as f:
+            f.write(chosen_id)
+        return chosen_id
         
-    with open(id_file, "r", encoding="utf-8") as f:
-        return f.read().strip()
+    return None
 
 def fetch_remote_config() -> dict:
     """Fetches the unified database directly from the GitHub repository."""
