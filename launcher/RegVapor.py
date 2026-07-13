@@ -31,7 +31,8 @@ def get_game_id(base_dir: Path) -> str | None:
         )
         return None
         
-    return f.read().strip()
+    with open(id_file, "r", encoding="utf-8") as f:
+        return f.read().strip()
 
 def fetch_remote_config() -> dict:
     """Fetches the unified database directly from the GitHub repository."""
@@ -162,6 +163,7 @@ def set_registry_keys(game_dir: Path, backup_dir: Path, config: dict):
         winreg.SetValueEx(key, value_name, 0, data_type, prepared_value)
 
     winreg.CloseKey(key)
+
 def backup_and_clean_registry(key_path: str, backup_dir: Path):
     """Harvests user adjustments into files and deletes the Windows keys completely."""
     try:
