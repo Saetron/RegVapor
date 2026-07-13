@@ -3,11 +3,9 @@ import json
 from pathlib import Path
 
 def validate_profile_structure(profile: dict, file_name: str) -> bool:
-    """Validates an individual game profile configuration structure."""
     allowed_types = {"REG_SZ", "REG_BINARY", "REG_DWORD"}
     errors_found = False
 
-    # 1. Verify mandatory top-level keys
     required_keys = ["game_exe", "key_path", "registry_data"]
     for key in required_keys:
         if key not in profile:
@@ -17,13 +15,11 @@ def validate_profile_structure(profile: dict, file_name: str) -> bool:
     if errors_found:
         return False
 
-    # 2. Verify registry_data block structure
     reg_data = profile["registry_data"]
     if not isinstance(reg_data, dict):
         print("  └── ❌ 'registry_data' must be a nested JSON object {}")
         return False
 
-    # 3. Verify individual registry elements
     for value_name, entry in reg_data.items():
         if not isinstance(entry, list) or len(entry) != 2:
             print(f"  └── ❌ Value '{value_name}' must be an array matching [\"TYPE\", \"VALUE\"].")
@@ -35,11 +31,21 @@ def validate_profile_structure(profile: dict, file_name: str) -> bool:
             print(f"  └── ❌ Value '{value_name}' has an invalid registry type '{reg_type}'. Must be one of {allowed_types}.")
             errors_found = True
 
+    # NEW: Validate optional backup_files key structure
+    if "backup_files" in profile:
+        if not isinstance(profile["backup_files"], list):
+            print("  └── ❌ 'backup_files' must be a JSON array [\"file1.dat\", \"file2.txt\"]")
+            errors_found = True
+        else:
+            for item in profile["backup_files"]:
+                if not isinstance(item, str):
+                    print(f"  └── ❌ 'backup_files' items must be strings. Found type: {type(item).__name__}")
+                    errors_found = True
+
     return not errors_found
 
 def main():
     source_dir = Path("registry_src")
-    
     print("=== Starting RegVapor Source Files Schema Validation ===")
     
     if not source_dir.exists() or not source_dir.is_dir():
@@ -52,7 +58,6 @@ def main():
         sys.exit(0)
 
     total_errors = 0
-
     for file_path in json_files:
         print(f"\nScanning source file: {file_path.name}")
         try:
@@ -68,7 +73,6 @@ def main():
             total_errors += 1
             continue
 
-        # Each file can contain one or multiple game profile dictionaries
         for game_id, profile in content.items():
             print(f"  Checking game profile definition: [{game_id}]")
             if not isinstance(profile, dict):
@@ -81,10 +85,10 @@ def main():
 
     print(f"\n=======================================================")
     if total_errors > 0:
-        print(f"❌ Validation Failed! Found {total_errors} structural error(s) across your source files.")
+        print(f"❌ Validation Failed! Found {total_errors} structural error(s).")
         sys.exit(1)
         
-    print("✅ All source profiles validated cleanly! Ready to merge and compile.")
+    print("✅ All source profiles validated cleanly!")
     sys.exit(0)
 
 if __name__ == "__main__":

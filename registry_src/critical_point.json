@@ -17,6 +17,10 @@
       "InstallType": ["REG_BINARY", "02 00 00 00"],
       "FontShadow": ["REG_BINARY", "01 00 00 00"],
       "WndPos": ["REG_BINARY", "BB 03 00 00 CF 01 00 00"]
-    }
+    },
+    "backup_files": [
+      "CFGMGR32.DLL",
+      "SETUPAPI.DLL"
+    ]
   }
 }
