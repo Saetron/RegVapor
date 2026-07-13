@@ -1,0 +1,14 @@
+{
+  "figures_of_happiness": {
+    "key_path": "Software\\AngelSmile\\SIAWAUS",
+    "game_exe": "SIAWAUS.EXE",
+    "registry_data": {
+      "SaveDir": ["REG_SZ", ".\\"],
+      "VideoDir": ["REG_SZ", ".\\"],
+      "VoiceDir": ["REG_SZ", ".\\"],
+      "MusicDir": ["REG_SZ", ".\\"],
+      "DataDir": ["REG_SZ", ".\\"],
+      "InstallDir": ["REG_SZ", ".\\"]
+    }
+  }
+}
