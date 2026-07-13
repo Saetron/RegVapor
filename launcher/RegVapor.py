@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import time
 import ctypes
 import winreg
 import subprocess
@@ -104,6 +105,8 @@ def get_game_id(base_dir: Path, master_config: dict) -> str | None:
     if chosen_id:
         with open(id_file, "w", encoding="utf-8") as f:
             f.write(chosen_id)
+        # Give the OS a brief window (500ms) to clean up window focus loops and DWM threads
+        time.sleep(0.5)
         return chosen_id
         
     return None
@@ -198,6 +201,10 @@ def set_registry_keys(game_dir: Path, backup_dir: Path, config: dict):
     key_path = config["key_path"]
     registry_data = config["registry_data"]
     
+    # If key_path is empty (like in font-only fixes), skip registry injection
+    if not key_path:
+        return
+
     key = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE)
 
     for value_name, (type_str, default_val) in registry_data.items():
@@ -240,6 +247,9 @@ def set_registry_keys(game_dir: Path, backup_dir: Path, config: dict):
 
 def backup_and_clean_registry(key_path: str, backup_dir: Path):
     """Harvests user adjustments into files and deletes the Windows keys completely."""
+    if not key_path:
+        return
+
     try:
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_READ)
     except FileNotFoundError:
@@ -297,7 +307,7 @@ def main():
         return
 
     config = master_config[game_id]
-    key_path = config["key_path"]
+    key_path = config.get("key_path", "")
     
     # Handle both string and list variants for game_exe safely
     game_exe_setting = config["game_exe"]
