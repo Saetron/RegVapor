@@ -44,11 +44,14 @@ jobs:
     - name: Generate SHA-256 Checksum
       shell: powershell
       run: |
-        # Calculate the hash string in lowercase and match the format expected by the app
-        $hash = (Get-FileHash dist/RegVapor.exe -Algorithm SHA256).Hash.ToLower()
-        # Save just the hash string followed by the filename layout standard
-        "$hash  RegVapor.exe" | Out-File -FilePath dist/RegVapor.exe.sha256 -Encoding utf8NoBOM
-        Write-Output "Generated SHA-256: $hash"
+          # Calculate the hash string in lowercase
+          $hash = (Get-FileHash dist/RegVapor.exe -Algorithm SHA256).Hash.ToLower()
+          # Create the file content string
+          $content = "$hash  RegVapor.exe"
+          # Use UTF8 encoding without BOM by writing the byte array directly
+          $bytes = [System.Text.Encoding]::UTF8.GetBytes($content)
+          [System.IO.File]::WriteAllBytes("dist/RegVapor.exe.sha256", $bytes)
+          Write-Output "Generated SHA-256: $hash"
 
     - name: Create Tag and GitHub Release
       uses: softprops/action-gh-release@v2
