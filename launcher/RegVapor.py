@@ -10,7 +10,7 @@ from pathlib import Path
 # ==============================================================================
 # BASE CONFIGURATION
 # ==============================================================================
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 GITHUB_JSON_URL = "https://raw.githubusercontent.com/Saetron/RegVapor/refs/heads/main/game_registry.json"
 ID_FILE_NAME = "game_id.txt"
 BACKUP_DIR_NAME = "registry"
@@ -18,7 +18,6 @@ BACKUP_DIR_NAME = "registry"
 
 def select_game_id_gui(available_ids: list) -> str | None:
     """Invokes a native Windows selection dropdown using a lightweight PowerShell script wrapper."""
-    # Convert choices array to a formatting string safe for PowerShell array initialization
     choices_array = ",".join([f"'{uid}'" for uid in available_ids])
     
     ps_script = f"""
@@ -65,7 +64,6 @@ def select_game_id_gui(available_ids: list) -> str | None:
     }}
     """
     try:
-        # Launch PowerShell silently to draw the window elements
         process = subprocess.run(
             ["powershell", "-NoProfile", "-Command", ps_script],
             capture_output=True,
@@ -81,14 +79,12 @@ def get_game_id(base_dir: Path, master_config: dict) -> str | None:
     """Reads the game identifier string or prompts user to select one via native GUI if missing."""
     id_file = base_dir / ID_FILE_NAME
     
-    # Check if file exists and has a valid ID
     if id_file.exists():
         with open(id_file, "r", encoding="utf-8") as f:
             current_id = f.read().strip()
         if current_id and current_id != "ENTER_GAME_ID_HERE":
             return current_id
 
-    # If missing or unconfigured, use GUI dropdown selection
     if not master_config:
         ctypes.windll.user32.MessageBoxW(
             0,
@@ -263,12 +259,24 @@ def main():
 
     config = master_config[game_id]
     key_path = config["key_path"]
-    game_exe_name = config["game_exe"]
-    game_exe = base_dir / game_exe_name
+    
+    # --- MULTI-EXECUTABLE RESOLUTION LOGIC ---
+    exe_setting = config["game_exe"]
+    # Handle single string format transparently by wrapping it into an array list
+    exe_candidates = [exe_setting] if isinstance(exe_setting, str) else exe_setting
+    
+    game_exe = None
+    for exe_name in exe_candidates:
+        test_path = base_dir / exe_name
+        if test_path.exists():
+            game_exe = test_path
+            print(f"Target executable found: {exe_name}")
+            break
 
-    if not game_exe.exists():
-        print(f"Executable missing: {game_exe}")
+    if not game_exe:
+        print(f"Error: Executable file missing. Checked candidates: {', '.join(exe_candidates)}")
         return
+    # ------------------------------------------
 
     # --- OPTIONAL FONT LAUNCHER INTEGRATION ---
     font_loaded = False
