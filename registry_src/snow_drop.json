@@ -1,0 +1,22 @@
+{
+  "snow_drop": {
+    "key_path": "Software\\Will\\SnowDrop",
+    "game_exe": "SNOWDROP.EXE",
+    "registry_data": {
+      "FontName": ["REG_SZ", "MS Serif"],
+      "InstallSrc": ["REG_SZ", "{install_src}"],
+      "InstallDir": ["REG_SZ", "{install_dir}"],
+      "WndPos": ["REG_BINARY", "BB 03 00 00 CF 01 00 00"],
+      "Mute": ["REG_BINARY", "00 00 00 00 00 00 00 00 00 00 00 00"],
+      "Volume": ["REG_BINARY", "64 00 00 00 64 00 00 00 64 00 00 00"],
+      "InstallType": ["REG_BINARY", "02 00 00 00"],
+      "AutoSkip": ["REG_BINARY", "00 00 00 00"],
+      "DisplayMode": ["REG_BINARY", "01 00 00 00"],
+      "FontEdge": ["REG_BINARY", "00 00 00 00"],
+      "FontShadow": ["REG_BINARY", "01 00 00 00"],
+      "MsgWnd": ["REG_BINARY", "00 00 00 00"],
+      "MsgSpeed": ["REG_BINARY", "01 00 00 00"],
+      "MsgPos": ["REG_BINARY", "0C 00 00 00 48 01 00 00"]
+    }
+  }
+}
