@@ -10,7 +10,7 @@ from pathlib import Path
 # ==============================================================================
 # BASE CONFIGURATION
 # ==============================================================================
-__version__ = "0.3.4"  # Incremented version for file backup integration
+__version__ = "0.3.5"  # Incremented version for multi-exe support
 GITHUB_JSON_URL = "https://raw.githubusercontent.com/Saetron/RegVapor/refs/heads/main/game_registry.json"
 ID_FILE_NAME = "game_id.txt"
 BACKUP_DIR_NAME = "registry"
@@ -221,11 +221,20 @@ def main():
 
     config = master_config[game_id]
     key_path = config["key_path"]
-    game_exe_name = config["game_exe"]
-    game_exe = base_dir / game_exe_name
+    
+    # Handle both string and list variants for game_exe safely
+    game_exe_setting = config["game_exe"]
+    exe_candidates = [game_exe_setting] if isinstance(game_exe_setting, str) else game_exe_setting
+    
+    game_exe = None
+    for candidate in exe_candidates:
+        target_path = base_dir / candidate
+        if target_path.exists():
+            game_exe = target_path
+            break
 
-    if not game_exe.exists():
-        print(f"Executable missing: {game_exe}")
+    if not game_exe:
+        print(f"Executable missing. Looked for: {exe_candidates} inside {base_dir}")
         return
 
     # --- OPTIONAL FONT LAUNCHER INTEGRATION ---
