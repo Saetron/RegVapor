@@ -101,7 +101,11 @@
         "REG_BINARY",
         "BB 03 00 00 CF 01 00 00"
       ]
-    }
+    },
+    "backup_files": [
+      "CFGMGR32.DLL",
+      "SETUPAPI.DLL"
+    ]
   },
   "guilty_the_sin": {
     "key_path": "",
