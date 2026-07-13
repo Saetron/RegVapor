@@ -3,6 +3,7 @@ import sys
 import json
 import time
 import ctypes
+from ctypes import wintypes
 import winreg
 import subprocess
 import urllib.request
@@ -11,72 +12,113 @@ from pathlib import Path
 # ==============================================================================
 # BASE CONFIGURATION
 # ==============================================================================
-__version__ = "0.3.6"
+__version__ = "0.4.3"
 GITHUB_JSON_URL = "https://raw.githubusercontent.com/Saetron/RegVapor/refs/heads/main/game_registry.json"
 ID_FILE_NAME = "game_id.txt"
 BACKUP_DIR_NAME = "registry"
 # ==============================================================================
 
+# Windows API Constants & Type Definitions for Raw UI Drawing
+GWL_USERDATA = -21
+WM_INITDIALOG = 0x0110
+WM_COMMAND = 0x0111
+CB_ADDSTRING = 0x0143
+CB_SETCURSEL = 0x014E
+CB_GETCURSEL = 0x0147
+CB_GETLBTEXT = 0x0148
+CBS_DROPDOWNLIST = 0x0003
+WS_CHILD = 0x40000000
+WS_VISIBLE = 0x10000000
+WS_TABSTOP = 0x00010000
+
+# Fix: Use c_ssize_t as the architecture-safe INT_PTR alternative for 64-bit callback loops
+WndProcType = ctypes.WINFUNCTYPE(ctypes.c_ssize_t, wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM)
+
+class DLGTEMPLATE(ctypes.Structure):
+    _fields_ = [
+        ("style", wintypes.DWORD),
+        ("dwExtendedStyle", wintypes.DWORD),
+        ("cdit", wintypes.WORD),
+        ("x", wintypes.SHORT),
+        ("y", wintypes.SHORT),
+        ("cx", wintypes.SHORT),
+        ("cy", wintypes.SHORT)
+    ]
+
 def select_game_id_gui(available_ids: list) -> str | None:
-    """Invokes a native Windows selection dropdown using a lightweight PowerShell script wrapper."""
-    # Convert choices array to a formatting string safe for PowerShell array initialization
-    choices_array = ",".join([f"'{uid}'" for uid in available_ids])
-    
-    ps_script = f"""
-    Add-Type -AssemblyName System.Windows.Forms
-    Add-Type -AssemblyName System.Drawing
+    """Invokes a purely native Windows API drop-down dialog box without any Python UI library dependencies."""
+    user32 = ctypes.windll.user32
+    gdi32 = ctypes.windll.gdi32
+    chosen_id = [None]
 
-    $form = New-Object System.Windows.Forms.Form
-    $form.Text = "RegVapor - Select Configuration"
-    $form.Size = New-Object System.Drawing.Size(420,180)
-    $form.StartPosition = "CenterScreen"
-    $form.FormBorderStyle = "FixedDialog"
-    $form.MaximizeBox = $false
-    $form.MinimizeBox = $false
-    $form.TopMost = $true
+    @WndProcType
+    def dialog_proc(hwnd, msg, wparam, lparam):
+        if msg == WM_INITDIALOG:
+            # Set the window title
+            user32.SetWindowTextW(hwnd, "RegVapor - Select Configuration")
+            
+            # Center the dialog on the display layout
+            rect = wintypes.RECT()
+            user32.GetWindowRect(hwnd, ctypes.byref(rect))
+            screen_width = user32.GetSystemMetrics(0)
+            screen_height = user32.GetSystemMetrics(1)
+            width = rect.right - rect.left
+            height = rect.bottom - rect.top
+            user32.MoveWindow(hwnd, (screen_width - width) // 2, (screen_height - height) // 2, width, height, True)
 
-    $label = New-Object System.Windows.Forms.Label
-    $label.Location = New-Object System.Drawing.Point(20,15)
-    $label.Size = New-Object System.Drawing.Size(360,35)
-    $label.Text = "No local configuration profile found.`nSelect a configuration from the remote master index:"
-    $label.Font = New-Object System.Drawing.Font("Segoe UI", 9)
-    $form.Controls.Add($label)
+            # Apply native Segoe UI styling to match the modern operating system
+            h_font = gdi32.CreateFontW(15, 0, 0, 0, 400, False, False, False, 1, 0, 0, 0, 0, "Segoe UI")
 
-    $comboBox = New-Object System.Windows.Forms.ComboBox
-    $comboBox.Location = New-Object System.Drawing.Point(20,55)
-    $comboBox.Size = New-Object System.Drawing.Size(360,25)
-    $comboBox.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
-    
-    $choices = @({choices_array})
-    foreach ($choice in $choices) {{ [void]$comboBox.Items.Add($choice) }}
-    if ($comboBox.Items.Count -gt 0) {{ $comboBox.SelectedIndex = 0 }}
-    $form.Controls.Add($comboBox)
+            # Create the structural label description text
+            label_text = "No local configuration profile found.\nSelect a configuration from the remote master index:"
+            h_label = user32.CreateWindowExW(0, "Static", label_text, WS_CHILD | WS_VISIBLE, 15, 12, 250, 30, hwnd, 100, 0, 0)
+            user32.SendMessageW(h_label, 0x0030, h_font, 1)
 
-    $button = New-Object System.Windows.Forms.Button
-    $button.Location = New-Object System.Drawing.Point(150,95)
-    $button.Size = New-Object System.Drawing.Size(120,30)
-    $button.Text = "Confirm & Save"
-    $button.DialogResult = [System.Windows.Forms.DialogResult]::OK
-    $form.AcceptButton = $button
-    $form.Controls.Add($button)
+            # Create the dropdown ComboBox wrapper element
+            h_combo = user32.CreateWindowExW(0, "ComboBox", "", WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST, 15, 48, 250, 200, hwnd, 101, 0, 0)
+            user32.SendMessageW(h_combo, 0x0030, h_font, 1)
 
-    $result = $form.ShowDialog()
-    if ($result -eq [System.Windows.Forms.DialogResult]::OK) {{
-        Write-Output $comboBox.SelectedItem
-    }}
-    """
-    try:
-        # Launch PowerShell silently to draw the window elements
-        process = subprocess.run(
-            ["powershell", "-NoProfile", "-Command", ps_script],
-            capture_output=True,
-            text=True,
-            creationflags=subprocess.CREATE_NO_WINDOW
-        )
-        output = process.stdout.strip()
-        return output if output in available_ids else None
-    except Exception:
-        return None
+            # Populate choices inside the dropdown combo box
+            for game_id in available_ids:
+                user32.SendMessageW(h_combo, CB_ADDSTRING, 0, game_id)
+            user32.SendMessageW(h_combo, CB_SETCURSEL, 0, 0)
+
+            # Create the action execution Button
+            h_button = user32.CreateWindowExW(0, "Button", "Confirm & Save", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 90, 85, 100, 26, hwnd, 1, 0, 0)
+            user32.SendMessageW(h_button, 0x0030, h_font, 1)
+            
+            # Force focus targeting onto the drop-down element layout
+            user32.SetFocus(h_combo)
+            return 0
+
+        elif msg == WM_COMMAND:
+            loword_wparam = wparam & 0xFFFF
+            if loword_wparam == 1:  # Confirm & Save Clicked
+                h_combo = user32.GetDlgItem(hwnd, 101)
+                idx = user32.SendMessageW(h_combo, CB_GETCURSEL, 0, 0)
+                if idx != -1:
+                    length = user32.SendMessageW(h_combo, 0x0149, idx, 0) # CB_GETLBTEXTLEN
+                    buffer = ctypes.create_unicode_buffer(length + 1)
+                    user32.SendMessageW(h_combo, CB_GETLBTEXT, idx, ctypes.byref(buffer))
+                    chosen_id[0] = buffer.value
+                user32.EndDialog(hwnd, 1)
+                return 1
+            elif loword_wparam == 2:  # Cancel or window closed
+                user32.EndDialog(hwnd, 0)
+                return 1
+        return 0
+
+    # Build memory template structure for the core system dialog window wrapper
+    dialog_template = DLGTEMPLATE(
+        style=0x10C800C4, # WS_POPUP | WS_CAPTION | WS_SYSMENU | DS_MODALFRAME | WS_VISIBLE
+        dwExtendedStyle=0,
+        cdit=0,
+        x=0, y=0, cx=210, cy=100
+    )
+
+    # Executing direct modal window call inside core process thread context
+    user32.DialogBoxIndirectParamW(0, ctypes.byref(dialog_template), 0, dialog_proc, 0)
+    return chosen_id[0]
 
 def get_game_id(base_dir: Path, master_config: dict) -> str | None:
     """Reads the game identifier string or prompts user to select one via native GUI if missing."""
@@ -105,8 +147,7 @@ def get_game_id(base_dir: Path, master_config: dict) -> str | None:
     if chosen_id:
         with open(id_file, "w", encoding="utf-8") as f:
             f.write(chosen_id)
-        # Give the OS a brief window (500ms) to clean up window focus loops and DWM threads
-        time.sleep(0.5)
+        time.sleep(0.2)
         return chosen_id
         
     return None
@@ -154,12 +195,10 @@ def handle_file_backups(base_dir: Path, files_list: list) -> list:
     """Renames specific game files to .bak before launching. Returns a list of renamed pairs."""
     processed_backups = []
     for rel_path in files_list:
-        # Resolve path relative to launcher base directory (handles subdirectories natively)
         target_file = (base_dir / rel_path).resolve()
         if target_file.exists() and target_file.is_file():
             bak_file = target_file.with_suffix(target_file.suffix + ".bak")
             try:
-                # If an old .bak already exists for some reason, remove it first
                 if bak_file.exists():
                     bak_file.unlink()
                 target_file.rename(bak_file)
@@ -175,7 +214,7 @@ def restore_file_backups(backups: list):
         if bak_file.exists():
             try:
                 if original_file.exists():
-                    original_file.unlink() # Clear conflicts if a new file spawned
+                    original_file.unlink()
                 bak_file.rename(original_file)
                 print(f"Restored file layout: {original_file.name}")
             except Exception as e:
@@ -201,20 +240,17 @@ def set_registry_keys(game_dir: Path, backup_dir: Path, config: dict):
     key_path = config["key_path"]
     registry_data = config["registry_data"]
     
-    # If key_path is empty (like in font-only fixes), skip registry injection
     if not key_path:
         return
 
     key = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE)
 
     for value_name, (type_str, default_val) in registry_data.items():
-        # Establish exact Windows Registry Typings and safe fallbacks
         if type_str == "REG_BINARY":
             data_type = winreg.REG_BINARY
             fallback_bytes = bytes.fromhex(str(default_val).replace(" ", ""))
         elif type_str == "REG_DWORD":
             data_type = winreg.REG_DWORD
-            # Handle either string numbers ("1") or clean integer representations safely
             fallback_bytes = int(str(default_val).strip())
         else:
             data_type = winreg.REG_SZ
@@ -292,10 +328,7 @@ def main():
     env["LOCALAPPDATA"] = str(local_appdata)
     env["APPDATA"] = str(roaming_appdata)
 
-    # Fetch the config database first so it can be used for the dropdown UI if needed
     master_config = fetch_remote_config()
-
-    # Pass master_config to the function as defined
     game_id = get_game_id(base_dir, master_config)
     if not game_id or game_id == "ENTER_GAME_ID_HERE":
         return
@@ -309,7 +342,6 @@ def main():
     config = master_config[game_id]
     key_path = config.get("key_path", "")
     
-    # Handle both string and list variants for game_exe safely
     game_exe_setting = config["game_exe"]
     exe_candidates = [game_exe_setting] if isinstance(game_exe_setting, str) else game_exe_setting
     
@@ -324,7 +356,6 @@ def main():
         print(f"Executable missing. Looked for: {exe_candidates} inside {base_dir}")
         return
 
-    # --- OPTIONAL FONT LAUNCHER INTEGRATION ---
     font_loaded = False
     font_path = None
     font_filename = config.get("custom_font")
@@ -332,35 +363,29 @@ def main():
         font_path = base_dir / font_filename
         font_loaded = load_session_font(font_path)
 
-    # --- OPTIONAL FILE RENAMING (.BAK) INTEGRATION ---
     active_backups = []
     backup_files_list = config.get("backup_files", [])
     if backup_files_list and isinstance(backup_files_list, list):
         active_backups = handle_file_backups(base_dir, backup_files_list)
 
-    # Inject Values into Registry
     try:
         set_registry_keys(base_dir, backup_dir, config)
     except Exception as e:
         print(f"Failed setting registry parameters: {e}")
 
-    # Launch Game
     try:
         subprocess.run([str(game_exe)], env=env, cwd=str(base_dir))
     except Exception as e:
         print(f"Engine failed to run execution loops: {e}")
     finally:
-        # Scrub and backup registry changes
         try:
             backup_and_clean_registry(key_path, backup_dir)
         except Exception as e:
             print(f"Scrub and backup failure: {e}")
         
-        # Restore renamed .bak files
         if active_backups:
             restore_file_backups(active_backups)
         
-        # Unload font cleanly on exit
         if font_loaded and font_path:
             unload_session_font(font_path)
 
