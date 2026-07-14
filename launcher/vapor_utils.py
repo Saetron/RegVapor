@@ -35,5 +35,5 @@ def check_for_updates(master_config: dict):
         target_exe = sys.argv[0]
         updater_exe = config.regvapor_dir / "RegVapor_updater.exe"
         urllib.request.urlretrieve(config.GITHUB_UPDATER_URL, updater_exe)
-        subprocess.Popen([str(updater_exe), target_exe], shell=False)
+        subprocess.Popen([str(updater_exe), target_exe, str(config.base_dir)], shell=False)
         sys.exit()
