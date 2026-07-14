@@ -99,9 +99,13 @@ If a game crashes, throws a black screen, or hangs during intro videos (or video
 1.  Download the **K-Lite Codec Pack Full** from the [Official Website](https://codecguide.com/download_k-lite_codec_pack_full.htm).
     
 2.  Complete the standard installation, then open the **Codec Tweak Tool** bundled with the package.
-    
+   
 3.  Locate and select the **Preferred decoders** settings panel.
     
 4.  Manually configure the options for **MPEG-2, MPEG-1, DVSD, and MJPEG** to use **LAV filters** instead of Microsoft system handlers.
     
 5.  Apply the changes for **both 32-bit and 64-bit** execution layouts.
+
+### Third-Party Components
+
+This project uses [Locale-Emulator](https://github.com/xupefei/Locale-Emulator) for handling localization tasks. The original license files are included in third_party/LocaleEmulator/.
