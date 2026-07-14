@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'registry_src/**'
-      - 'RegVapor.py'
+      - 'launcher/RegVapor.py'
 
 permissions:
   contents: write
