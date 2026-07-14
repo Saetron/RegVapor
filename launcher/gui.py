@@ -93,3 +93,7 @@ def select_game_id_gui(available_ids: list) -> str | None:
 
     user32.DialogBoxIndirectParamW(0, ctypes.byref(dialog_template), 0, dialog_proc, 0)
     return chosen_id[0]
+
+def show_error_message(message: str):
+    user32 = ctypes.windll.user32
+    user32.MessageBoxW(0, message, "RegVapor Launcher - Error", 0x10 | 0x0)
