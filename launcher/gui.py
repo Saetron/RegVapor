@@ -97,3 +97,8 @@ def select_game_id_gui(available_ids: list) -> str | None:
 def show_error_message(message: str):
     user32 = ctypes.windll.user32
     user32.MessageBoxW(0, message, "RegVapor Launcher - Error", 0x10 | 0x0)
+
+def show_info_message(message: str, title: str = "RegVapor Launcher - Info"):
+    user32 = ctypes.windll.user32
+    ans = ctypes.windll.user32.MessageBoxW(0, message, title, 0x04 | 0x40)
+    return ans == 6

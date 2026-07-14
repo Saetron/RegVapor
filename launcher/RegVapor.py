@@ -6,25 +6,17 @@ import font_loader as font
 import registry_handler as registry
 import file_handler
 import gui
-import time
 import subprocess
-import json
 
 def main():
     os.makedirs(str(config.backup_dir), exist_ok=True)
     log("RegVapor Version {}", config.__version__)
 
-    # 1. Read existing configuration profile id if already set
     game_id = vapor.read_saved_game_id()
-
-    # 2. Grab the relevant configuration dataset
     master_config = vapor.fetch_and_cache_config(game_id)
-
-    # 3. Check for updates
     if master_config:
         vapor.check_for_updates(master_config)
 
-    # 4. Open GUI if no valid game_id is found
     if not game_id or game_id == "ENTER_GAME_ID_HERE":
         if not master_config:
             gui.show_error_message("Could not fetch configuration database (online or offline fallback), and no local configuration file exists.")
@@ -34,21 +26,7 @@ def main():
         game_id = gui.select_game_id_gui(available_ids)
 
         if game_id:
-            # Save the text identifier locally
-            with open(config.id_file, "w", encoding="utf-8") as f:
-                f.write(game_id)
-            
-            # Now cache ONLY the chosen configuration details to disk
-            if game_id in master_config:
-                filtered_data = {game_id: master_config[game_id]}
-                try:
-                    with open(config.local_json_path, "w", encoding="utf-8") as f:
-                        json.dump(filtered_data, f, indent=4)
-                    master_config = filtered_data
-                    log("Cached configuration for '{}' locally to {}.", game_id, config.local_json_path)
-                except Exception as e:
-                    log("Failed to write local backup cache: {}", e)
-            time.sleep(0.2)
+            file_handler.game_id_write(game_id, master_config)
         else:
             return
 

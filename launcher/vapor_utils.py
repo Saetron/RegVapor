@@ -4,6 +4,7 @@ import ctypes
 import json
 import subprocess
 import urllib.request
+import gui
 from utils import log_message as log
 
 def check_for_updates(master_config: dict):
@@ -30,9 +31,9 @@ def check_for_updates(master_config: dict):
     msg = (f"A new version of RegVapor is available (v{remote_version}).\n\n"
            "Would you like to update now? (This will download the latest version and restart the launcher.)")
     
-    ans = ctypes.windll.user32.MessageBoxW(0, msg, "RegVapor Update Available", 0x04 | 0x40)
+    ans = gui.show_info_message(msg, title="RegVapor Launcher - Update Available")
     
-    if ans == 6:
+    if ans:
         target_exe = sys.argv[0]
         updater_exe = config.base_dir / "RegVapor_updater.exe"
         urllib.request.urlretrieve(config.GITHUB_UPDATER_URL, updater_exe)
