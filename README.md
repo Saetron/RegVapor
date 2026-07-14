@@ -13,8 +13,6 @@ A lightweight, portable game launcher utility that resolves Windows Registry dep
 
 *  **Dynamic Registry Injection:** Pre-fills required keys, absolute folder paths (`{install_dir}` / `{install_src}`), and binary configurations directly into the Windows Registry before execution.
 
-*  **True Isolation & Portability:** Redirects standard user folders (`AppData/Local`, `AppData/Roaming`, and `USERPROFILE`) into a localized `PortableProfile` folder within the game directory.
-
 *  **Auto-Cleanup on Exit:** Dynamically backs up user configuration changes made during the session and purges the injected Windows Registry keys cleanly upon game exit.
 
 *  **Transient File Modifiers (`.bak`):** Temporarily renames conflicting assets (e.g., troublesome intro videos or cache files) to `.bak` strings on startup and restores them seamlessly when the game closes.
