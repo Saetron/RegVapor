@@ -13,12 +13,9 @@ from pathlib import Path
 # ==============================================================================
 # BASE CONFIGURATION
 # ==============================================================================
-__version__ = "0.5.0"
+__version__ = "0.5.1"
 GITHUB_JSON_URL = "https://raw.githubusercontent.com/Saetron/RegVapor/refs/heads/main/game_registry.json"
-# URL pointing to the latest compiled executable release
 GITHUB_EXE_URL = "https://github.com/Saetron/RegVapor/releases/latest/download/RegVapor.exe"
-# URL pointing to the SHA-256 checksum file of the latest release executable
-GITHUB_SHA_URL = "https://github.com/Saetron/RegVapor/releases/latest/download/RegVapor.exe.sha256"
 
 LOCAL_JSON_NAME = "RegVapor_game.json"
 ID_FILE_NAME = "game_id.txt"
@@ -370,10 +367,10 @@ def main():
     os.makedirs(str(roaming_appdata), exist_ok=True)
     os.makedirs(str(backup_dir), exist_ok=True)
     
-    env = os.environ.copy()
-    env["USERPROFILE"] = str(portable_profile)
-    env["LOCALAPPDATA"] = str(local_appdata)
-    env["APPDATA"] = str(roaming_appdata)
+    #env = os.environ.copy()
+    #env["USERPROFILE"] = str(portable_profile)
+    #env["LOCALAPPDATA"] = str(local_appdata)
+    #env["APPDATA"] = str(roaming_appdata)
 
     # 1. Read existing configuration profile id if already set
     game_id = read_saved_game_id(base_dir)
