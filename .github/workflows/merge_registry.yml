@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'registry_src/**'
-      - 'launcher/RegVapor.py'
+      - 'launcher/config.py'
   workflow_dispatch:
 
 permissions:
@@ -20,7 +20,7 @@ jobs:
 
     - name: Generate Metadata
       run: |
-        VERSION=$(grep -oP '__version__\s*=\s*"\K[^"]+' launcher/RegVapor.py)
+        VERSION=$(grep -oP '__version__\s*=\s*"\K[^"]+' launcher/config.py)
         echo "Detected version: $VERSION"
         mkdir -p registry_src
         echo "{\"__metadata__\": {\"latest_launcher_version\": \"$VERSION\"}}" > registry_src/00_metadata.json
@@ -43,5 +43,5 @@ jobs:
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
         git add game_registry.json registry_src/00_metadata.json
-        git commit -m "Update: Compiled registry with v$(grep -oP '__version__\s*=\s*"\K[^"]+' launcher/RegVapor.py)" || echo "No changes"
+        git commit -m "Update: Compiled registry with v$(grep -oP '__version__\s*=\s*"\K[^"]+' launcher/config.py)" || echo "No changes"
         git push
