@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 
 # ==============================================================================
 # BASE CONFIGURATION
@@ -13,3 +14,8 @@ ID_FILE_NAME = "game_id.txt"
 BACKUP_DIR_NAME = "registry"
 LOGFILE = "RegVapor.log"
 # ==============================================================================
+
+# Generate paths based on RegVapor's location
+base_dir = Path(sys.argv[0]).resolve().parent
+regvapor_dir = base_dir / REGVAPOR_DIR_NAME
+backup_dir = regvapor_dir / BACKUP_DIR_NAME

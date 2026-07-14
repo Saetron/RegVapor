@@ -1,11 +1,10 @@
 from datetime import datetime
 import os
-from pathlib import Path
 import config
 
-def log_message(regvapor_dir: Path, message: str, *args, max_lines=100):
+def log_message(message: str, *args, max_lines=100):
     formatted_message = message.format(*args) if args else message
-    logfile_path = regvapor_dir / LOGFILE
+    logfile_path = config.regvapor_dir / config.LOGFILE
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     with open(logfile_path, "a", encoding="utf-8") as f:
