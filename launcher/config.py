@@ -19,3 +19,4 @@ LOGFILE = "RegVapor.log"
 base_dir = Path(sys.argv[0]).resolve().parent
 regvapor_dir = base_dir / REGVAPOR_DIR_NAME
 backup_dir = regvapor_dir / BACKUP_DIR_NAME
+local_json_path = regvapor_dir / LOCAL_JSON_NAME

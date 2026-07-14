@@ -107,8 +107,6 @@ def select_game_id_gui(available_ids: list) -> str | None:
 
 # ==============================================================================
 
-# Log function, makes my life easier and doesnt clutter the code for every log entry
-
 def read_saved_game_id() -> str | None:
     """Checks if a game_id.txt exists and returns its contents if valid."""
     id_file = config.regvapor_dir / config.ID_FILE_NAME
@@ -126,8 +124,7 @@ def fetch_and_cache_config(target_game_id: str | None) -> dict:
     - If target_game_id is unknown (first run), returns the full database so the user can choose.
     - If offline, falls back to the local RegVapor_game.json.
     """
-    local_json_path = config.regvapor_dir / config.LOCAL_JSON_NAME
-    
+   
     # Trying to read the game_registry from GitHub first
     try:
         with urllib.request.urlopen(config.GITHUB_JSON_URL, timeout=5) as response:
@@ -137,7 +134,7 @@ def fetch_and_cache_config(target_game_id: str | None) -> dict:
                 if target_game_id in full_data:
                     # Filter to current game_id to save storage and allow offline fallback
                     filtered_data = {target_game_id: full_data[target_game_id]}
-                    with open(local_json_path, "w", encoding="utf-8") as f:
+                    with open(config.local_json_path, "w", encoding="utf-8") as f:
                         json.dump(filtered_data, f, indent=4)
                     return filtered_data
                 else:
@@ -149,9 +146,9 @@ def fetch_and_cache_config(target_game_id: str | None) -> dict:
         log_message("Network offline or GitHub unreachable ({})", e)
         
     # Offline fallback logic
-    if local_json_path.exists():
+    if config.local_json_path.exists():
         try:
-            with open(local_json_path, "r", encoding="utf-8") as f:
+            with open(config.local_json_path, "r", encoding="utf-8") as f:
                 local_data = json.load(f)
             log_message("Loaded cached fallback configuration from: {}", config.LOCAL_JSON_NAME)
             return local_data
