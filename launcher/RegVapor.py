@@ -2,22 +2,17 @@ import os
 import config
 from utils import log_message as log
 import gui
-import sys
 import json
 import time
 import winreg
 import subprocess
 import urllib.request
-
-
-
-# ==============================================================================
+import ctypes
 
 def read_saved_game_id() -> str | None:
     """Checks if a game_id.txt exists and returns its contents if valid."""
-    id_file = config.regvapor_dir / config.ID_FILE_NAME
-    if id_file.exists():
-        with open(id_file, "r", encoding="utf-8") as f:
+    if config.id_file.exists():
+        with open(config.id_file, "r", encoding="utf-8") as f:
             current_id = f.read().strip()
         if current_id and current_id != "ENTER_GAME_ID_HERE":
             return current_id
@@ -249,16 +244,16 @@ def main():
     log("RegVapor Version {}", config.__version__)
 
     # 1. Read existing configuration profile id if already set
-    game_id = read_saved_game_id(config.regvapor_dir)
+    game_id = read_saved_game_id()
 
     # 2. Grab the relevant configuration dataset
-    master_config = fetch_and_cache_config(config.regvapor_dir, game_id)
+    master_config = fetch_and_cache_config(game_id)
 
-    # 3. Securely check for and run application updater logic
+    # 3. Check for updates
     if master_config:
-        check_for_updates(config.regvapor_dir, master_config)
+        check_for_updates(master_config)
 
-    # 4. If missing or unconfigured profile id, launch GUI fallback 
+    # 4. Open GUI if no valid game_id is found
     if not game_id or game_id == "ENTER_GAME_ID_HERE":
         if not master_config:
             ctypes.windll.user32.MessageBoxW(
@@ -270,30 +265,28 @@ def main():
             return
 
         available_ids = sorted([k for k in master_config.keys() if k != "__metadata__"])
-        game_id = select_game_id_gui(available_ids)
+        game_id = gui.select_game_id_gui(available_ids)
 
         if game_id:
             # Save the text identifier locally
-            id_file = base_dir / ID_FILE_NAME
-            with open(id_file, "w", encoding="utf-8") as f:
+            with open(config.id_file, "w", encoding="utf-8") as f:
                 f.write(game_id)
             
             # Now cache ONLY the chosen configuration details to disk
             if game_id in master_config:
                 filtered_data = {game_id: master_config[game_id]}
-                local_json_path = base_dir / LOCAL_JSON_NAME
                 try:
-                    with open(local_json_path, "w", encoding="utf-8") as f:
+                    with open(config.local_json_path, "w", encoding="utf-8") as f:
                         json.dump(filtered_data, f, indent=4)
                     master_config = filtered_data
-                    print(f"Cached configuration for '{game_id}' locally to {LOCAL_JSON_NAME}.")
+                    print(f"Cached configuration for '{game_id}' locally to {config.LOCAL_JSON_NAME}.")
                 except Exception as e:
                     print(f"Failed to write local backup cache: {e}")
             time.sleep(0.2)
         else:
             return
 
-    print(f"RegVapor Launcher v{__version__} initializing for ID: {game_id}")
+    print(f"RegVapor Launcher v{config.__version__} initializing for ID: {game_id}")
     
     if not master_config or game_id not in master_config:
         print(f"Error: Configurations for '{game_id}' not found.")
