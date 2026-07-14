@@ -59,35 +59,6 @@ def fetch_and_cache_config(target_game_id: str | None) -> dict:
             
     return {}
 
-def check_for_updates(master_config: dict):
-    """Checks for updates and notifies the user with a download link."""
-    remote_version = master_config.get("__metadata__", {}).get("latest_launcher_version")
-    if not remote_version:
-        log("Update check failed: No remote version found.")
-        return
-
-    def parse_ver(v_str):
-        clean_v = ''.join(c for c in v_str if c.isdigit() or c == '.')
-        return [int(x) for x in clean_v.split(".")]
-
-    try:
-        remote_parsed = parse_ver(remote_version)
-        local_parsed = parse_ver(config.__version__)
-        log("Checking updates: Remote v{}, Local v{}", remote_version, config.__version__)
-        if remote_parsed <= local_parsed:
-            return
-    except Exception as e:
-        log("Update check parsing error: {}", e)
-        return
-
-    msg = (f"A new version of RegVapor is available (v{remote_version}).\n\n"
-           "Would you like to open the release page now?")
-    
-    ans = ctypes.windll.user32.MessageBoxW(0, msg, "RegVapor Update Available", 0x04 | 0x40)
-    
-    if ans == 6:
-        os.startfile(config.GITHUB_EXE_URL.replace('/latest/download/', '/releases/latest'))
-
 def load_session_font(font_path: config.Path) -> bool:
     """Loads a custom font into the system font table for the current user session."""
     if not font_path.exists():
@@ -252,7 +223,7 @@ def main():
 
     # 3. Check for updates
     if master_config:
-        check_for_updates(master_config)
+        utils.check_for_updates(master_config)
 
     # 4. Open GUI if no valid game_id is found
     if not game_id or game_id == "ENTER_GAME_ID_HERE":

@@ -42,6 +42,10 @@ jobs:
       run: |
         pyinstaller --noconsole --onefile --name=RegVapor launcher/RegVapor.py
 
+    - name: Compile Updater Executable
+      run: |
+        pyinstaller --noconsole --onefile --name=RegVapor_updater launcher/updater.py
+
     - name: Create Tag and GitHub Release
       uses: softprops/action-gh-release@v2
       with:
@@ -53,6 +57,8 @@ jobs:
           Changes detected in the `launcher/` path structure have been built.
         draft: false
         prerelease: false
-        files: dist/RegVapor.exe
+        files: |
+          dist/RegVapor.exe
+          dist/RegVapor_updater.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

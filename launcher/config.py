@@ -4,9 +4,10 @@ import sys
 # ==============================================================================
 # BASE CONFIGURATION
 # ==============================================================================
-__version__ = "0.6.0"
+__version__ = "0.6.1"
 GITHUB_JSON_URL = "https://raw.githubusercontent.com/Saetron/RegVapor/refs/heads/main/game_registry.json"
 GITHUB_EXE_URL = "https://github.com/Saetron/RegVapor/releases/latest/download/RegVapor.exe"
+GITHUB_UPDATER_URL = "https://github.com/Saetron/RegVapor/releases/latest/download/RegVapor_updater.exe"
 
 REGVAPOR_DIR_NAME = "RegVapor"
 LOCAL_JSON_NAME = "RegVapor_game.json"
