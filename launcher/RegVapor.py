@@ -7,7 +7,7 @@ from ctypes import wintypes
 import winreg
 import subprocess
 import urllib.request
-import hashlib
+from datetime import datetime
 from pathlib import Path
 
 # ==============================================================================
@@ -20,6 +20,7 @@ GITHUB_EXE_URL = "https://github.com/Saetron/RegVapor/releases/latest/download/R
 LOCAL_JSON_NAME = "RegVapor_game.json"
 ID_FILE_NAME = "game_id.txt"
 BACKUP_DIR_NAME = "registry"
+LOGFILE = "RegVapor.log"
 # ==============================================================================
 
 # Windows API Constants & Type Definitions for Raw UI Drawing
@@ -121,7 +122,7 @@ def select_game_id_gui(available_ids: list) -> str | None:
 
 
 def read_saved_game_id(base_dir: Path) -> str | None:
-    """Reads and returns the game identifier if it exists and is configured."""
+    """Checks if a game_id.txt exists and returns its contents if valid."""
     id_file = base_dir / ID_FILE_NAME
     if id_file.exists():
         with open(id_file, "r", encoding="utf-8") as f:
@@ -138,38 +139,43 @@ def fetch_and_cache_config(base_dir: Path, target_game_id: str | None) -> dict:
     - If offline, falls back to the local RegVapor_game.json.
     """
     local_json_path = base_dir / LOCAL_JSON_NAME
+    logfile_path = base_dir / LOGFILE
     
-    # Try fetching online
+    # Trying to read the game_registry from GitHub first
     try:
         with urllib.request.urlopen(GITHUB_JSON_URL, timeout=5) as response:
             full_data = json.loads(response.read().decode())
             
             if target_game_id:
                 if target_game_id in full_data:
-                    # Filter data to only include the target game
+                    # Filter to current game_id to save storage and allow offline fallback
                     filtered_data = {target_game_id: full_data[target_game_id]}
                     with open(local_json_path, "w", encoding="utf-8") as f:
                         json.dump(filtered_data, f, indent=4)
-                    print(f"Successfully updated and cached configuration for '{target_game_id}' only.")
                     return filtered_data
                 else:
-                    print(f"Warning: Selected game '{target_game_id}' not found in remote registry.")
+                    # If ID doesnt exist in the fetched data, return full_data for GUI selection, avoids silent failure when remote data changes
+                    return full_data
             else:
-                # If game_id is not set yet, we return the full dataset so the GUI can display it.
-                # We won't save the massive JSON to disk; we'll wait until they choose a game.
                 return full_data
     except Exception as e:
-        print(f"Network offline or GitHub unreachable ({e}). Searching for local configuration backup...")
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        with open(logfile_path, "a", encoding="utf-8") as f:
+            f.write(f"[{timestamp}] Network offline or GitHub unreachable ({e}).\n")
         
     # Offline fallback logic
     if local_json_path.exists():
         try:
             with open(local_json_path, "r", encoding="utf-8") as f:
                 local_data = json.load(f)
-            print(f"Loaded cached fallback configuration from: {LOCAL_JSON_NAME}")
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            with open(logfile_path, "a", encoding="utf-8") as f:
+                f.write(f"[{timestamp}] Loaded cached fallback configuration from: {LOCAL_JSON_NAME}\n")
             return local_data
         except Exception as e:
-            print(f"Failed to read local fallback {LOCAL_JSON_NAME}: {e}")
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            with open(logfile_path, "a", encoding="utf-8") as f:
+                f.write(f"[{timestamp}] Failed to read local fallback {LOCAL_JSON_NAME}: {e}\n")
             
     return {}
 
