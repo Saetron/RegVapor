@@ -2,6 +2,7 @@ import os
 import config
 import utils
 from utils import log_message as log
+import vapor_utils as vapor
 import gui
 import json
 import time
@@ -223,7 +224,7 @@ def main():
 
     # 3. Check for updates
     if master_config:
-        utils.check_for_updates(master_config)
+        vapor.check_for_updates(master_config)
 
     # 4. Open GUI if no valid game_id is found
     if not game_id or game_id == "ENTER_GAME_ID_HERE":
