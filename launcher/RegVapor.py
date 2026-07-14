@@ -120,7 +120,7 @@ def select_game_id_gui(available_ids: list) -> str | None:
 # ==============================================================================
 
 # Log function, makes my life easier and doesnt clutter the code for every log entry
-def log_message(message: str, *args, max_lines=100, base_dir):
+def log_message(base_dir: Path, message: str, *args, max_lines=100):
     formatted_message = message.format(*args) if args else message
     logfile_path = base_dir / LOGFILE
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -172,23 +172,17 @@ def fetch_and_cache_config(base_dir: Path, target_game_id: str | None) -> dict:
             else:
                 return full_data
     except Exception as e:
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        with open(logfile_path, "a", encoding="utf-8") as f:
-            f.write(f"[{timestamp}] Network offline or GitHub unreachable ({e}).\n")
+        log_message(base_dir, "Network offline or GitHub unreachable ({})", e)
         
     # Offline fallback logic
     if local_json_path.exists():
         try:
             with open(local_json_path, "r", encoding="utf-8") as f:
                 local_data = json.load(f)
-            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            with open(logfile_path, "a", encoding="utf-8") as f:
-                f.write(f"[{timestamp}] Loaded cached fallback configuration from: {LOCAL_JSON_NAME}\n")
+            log_message(base_dir, "Loaded cached fallback configuration from: {}", LOCAL_JSON_NAME)
             return local_data
         except Exception as e:
-            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            with open(logfile_path, "a", encoding="utf-8") as f:
-                f.write(f"[{timestamp}] Failed to read local fallback {LOCAL_JSON_NAME}: {e}\n")
+            log_message(base_dir, "Failed to read local fallback {}: {}", LOCAL_JSON_NAME, e)
             
     return {}
 
