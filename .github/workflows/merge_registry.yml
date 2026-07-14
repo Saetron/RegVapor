@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'registry_src/**'
+      - 'RegVapor.py'
 
 permissions:
   contents: write
@@ -13,52 +14,33 @@ permissions:
 jobs:
   merge-json:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-python-version: '3.x'
+    - name: Generate Metadata
+      run: |
+        VERSION=$(grep -oP '__version__\s*=\s*"\K[^"]+' RegVapor.py)
+        echo "Detected version: $VERSION"
+        mkdir -p registry_src
+        echo "{\"__metadata__\": {\"latest_launcher_version\": \"$VERSION\"}}" > registry_src/00_metadata.json
 
-    - name: Merge individual JSON files
+    - name: Merge JSON files
       run: |
         python -c '
-        import os
-        import json
-
-        src_dir = "registry_src"
-        output_file = "game_registry.json"
+        import os, json
         master_dict = {}
-
-        if os.path.exists(src_dir):
-            for filename in sorted(os.listdir(src_dir)):
-                if filename.endswith(".json"):
-                    file_path = os.path.join(src_dir, filename)
-                    try:
-                        with open(file_path, "r", encoding="utf-8") as f:
-                            data = json.load(f)
-                            # Merge dictionaries together
-                            master_dict.update(data)
-                        print(f"Successfully merged: {filename}")
-                    except Exception as e:
-                        print(f"Error parsing {filename}: {e}")
-
-        with open(output_file, "w", encoding="utf-8") as out:
+        for filename in sorted(os.listdir("registry_src")):
+            if filename.endswith(".json"):
+                with open(os.path.join("registry_src", filename), "r", encoding="utf-8") as f:
+                    master_dict.update(json.load(f))
+        with open("game_registry.json", "w", encoding="utf-8") as out:
             json.dump(master_dict, out, indent=2, ensure_ascii=False)
         '
 
-    - name: Commit and Push changes
+    - name: Commit and Push
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        
-        if git diff --quiet game_registry.json; then
-          echo "No changes detected in compiled file."
-        else
-          git add game_registry.json
-          git commit -m "Automated update: Compiled master game registry JSON"
-          git push
-        fi
+        git add game_registry.json registry_src/00_metadata.json
+        git commit -m "Update: Compiled registry with v$(grep -oP '__version__\s*=\s*"\K[^"]+' RegVapor.py)" || echo "No changes"
+        git push
