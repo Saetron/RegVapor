@@ -109,9 +109,9 @@ def select_game_id_gui(available_ids: list) -> str | None:
 
 # Log function, makes my life easier and doesnt clutter the code for every log entry
 
-def read_saved_game_id(regvapor_dir: Path) -> str | None:
+def read_saved_game_id() -> str | None:
     """Checks if a game_id.txt exists and returns its contents if valid."""
-    id_file = regvapor_dir / ID_FILE_NAME
+    id_file = config.regvapor_dir / config.ID_FILE_NAME
     if id_file.exists():
         with open(id_file, "r", encoding="utf-8") as f:
             current_id = f.read().strip()
@@ -119,18 +119,18 @@ def read_saved_game_id(regvapor_dir: Path) -> str | None:
             return current_id
     return None
 
-def fetch_and_cache_config(regvapor_dir: Path, target_game_id: str | None) -> dict:
+def fetch_and_cache_config(target_game_id: str | None) -> dict:
     """
     Attempts to fetch the database from GitHub. 
     - If target_game_id is known, caches ONLY that game's data to RegVapor_game.json.
     - If target_game_id is unknown (first run), returns the full database so the user can choose.
     - If offline, falls back to the local RegVapor_game.json.
     """
-    local_json_path = regvapor_dir / LOCAL_JSON_NAME
+    local_json_path = config.regvapor_dir / config.LOCAL_JSON_NAME
     
     # Trying to read the game_registry from GitHub first
     try:
-        with urllib.request.urlopen(GITHUB_JSON_URL, timeout=5) as response:
+        with urllib.request.urlopen(config.GITHUB_JSON_URL, timeout=5) as response:
             full_data = json.loads(response.read().decode())
             
             if target_game_id:
@@ -146,25 +146,25 @@ def fetch_and_cache_config(regvapor_dir: Path, target_game_id: str | None) -> di
             else:
                 return full_data
     except Exception as e:
-        log_message(regvapor_dir, "Network offline or GitHub unreachable ({})", e)
+        log_message("Network offline or GitHub unreachable ({})", e)
         
     # Offline fallback logic
     if local_json_path.exists():
         try:
             with open(local_json_path, "r", encoding="utf-8") as f:
                 local_data = json.load(f)
-            log_message(regvapor_dir, "Loaded cached fallback configuration from: {}", LOCAL_JSON_NAME)
+            log_message("Loaded cached fallback configuration from: {}", config.LOCAL_JSON_NAME)
             return local_data
         except Exception as e:
-            log_message(regvapor_dir, "Failed to read local fallback {}: {}", LOCAL_JSON_NAME, e)
+            log_message("Failed to read local fallback {}: {}", config.LOCAL_JSON_NAME, e)
             
     return {}
 
-def check_for_updates(regvapor_dir: Path, master_config: dict):
+def check_for_updates(master_config: dict):
     """Checks for updates and notifies the user with a download link."""
     remote_version = master_config.get("__metadata__", {}).get("latest_launcher_version")
     if not remote_version:
-        log_message(regvapor_dir, "Update check failed: No remote version found.")
+        log_message("Update check failed: No remote version found.")
         return
 
     def parse_ver(v_str):
@@ -173,12 +173,12 @@ def check_for_updates(regvapor_dir: Path, master_config: dict):
 
     try:
         remote_parsed = parse_ver(remote_version)
-        local_parsed = parse_ver(__version__)
-        log_message(regvapor_dir, "Checking updates: Remote v{}, Local v{}", remote_version, __version__)
+        local_parsed = parse_ver(config.__version__)
+        log_message("Checking updates: Remote v{}, Local v{}", remote_version, config.__version__)
         if remote_parsed <= local_parsed:
             return
     except Exception as e:
-        log_message(regvapor_dir, "Update check parsing error: {}", e)
+        log_message("Update check parsing error: {}", e)
         return
 
     msg = (f"A new version of RegVapor is available (v{remote_version}).\n\n"
@@ -187,7 +187,7 @@ def check_for_updates(regvapor_dir: Path, master_config: dict):
     ans = ctypes.windll.user32.MessageBoxW(0, msg, "RegVapor Update Available", 0x04 | 0x40)
     
     if ans == 6:
-        os.startfile(GITHUB_EXE_URL.replace('/latest/download/', '/releases/latest'))
+        os.startfile(config.GITHUB_EXE_URL.replace('/latest/download/', '/releases/latest'))
 
 def load_session_font(font_path: Path) -> bool:
     """Loads a custom font into the system font table for the current user session."""
@@ -343,17 +343,17 @@ def backup_and_clean_registry(key_path: str, backup_dir: Path):
 
 def main():
     os.makedirs(str(config.backup_dir), exist_ok=True)
-    log_message(regvapor_dir, "RegVapor Version {}", __version__)
+    log_message("RegVapor Version {}", config.__version__)
 
     # 1. Read existing configuration profile id if already set
-    game_id = read_saved_game_id(regvapor_dir)
+    game_id = read_saved_game_id(config.regvapor_dir)
 
     # 2. Grab the relevant configuration dataset
-    master_config = fetch_and_cache_config(base_dir, game_id)
+    master_config = fetch_and_cache_config(config.regvapor_dir, game_id)
 
     # 3. Securely check for and run application updater logic
     if master_config:
-        check_for_updates(regvapor_dir, master_config)
+        check_for_updates(config.regvapor_dir, master_config)
 
     # 4. If missing or unconfigured profile id, launch GUI fallback 
     if not game_id or game_id == "ENTER_GAME_ID_HERE":
@@ -404,39 +404,39 @@ def main():
     
     game_exe = None
     for candidate in exe_candidates:
-        target_path = base_dir / candidate
+        target_path = config.base_dir / candidate
         if target_path.exists():
             game_exe = target_path
             break
 
     if not game_exe:
-        print(f"Executable missing. Looked for: {exe_candidates} inside {base_dir}")
+        print(f"Executable missing. Looked for: {exe_candidates} inside {config.base_dir}")
         return
 
     font_loaded = False
     font_path = None
     font_filename = entry.get("custom_font")
     if font_filename:
-        font_path = base_dir / font_filename
+        font_path = config.base_dir / font_filename
         font_loaded = load_session_font(font_path)
 
     active_backups = []
     backup_files_list = entry.get("backup_files", [])
     if backup_files_list and isinstance(backup_files_list, list):
-        active_backups = handle_file_backups(base_dir, regvapor_dir, backup_files_list)
+        active_backups = handle_file_backups(config.base_dir, config.regvapor_dir, backup_files_list)
 
     try:
-        set_registry_keys(base_dir, backup_dir, entry)
+        set_registry_keys(config.base_dir, config.backup_dir, entry)
     except Exception as e:
         print(f"Failed setting registry parameters: {e}")
 
     try:
-        subprocess.run([str(game_exe)], cwd=str(base_dir))
+        subprocess.run([str(game_exe)], cwd=str(config.base_dir))
     except Exception as e:
         print(f"Engine failed to run execution loops: {e}")
     finally:
         try:
-            backup_and_clean_registry(key_path, backup_dir)
+            backup_and_clean_registry(key_path, config.backup_dir)
         except Exception as e:
             print(f"Scrub and backup failure: {e}")
         
@@ -444,7 +444,7 @@ def main():
             restore_file_backups(active_backups)
         
         if font_loaded and font_path:
-            unload_session_font(font_path, regvapor_dir)
+            unload_session_font(font_path, config.regvapor_dir)
 
 if __name__ == "__main__":
     main()
