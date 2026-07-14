@@ -1,6 +1,5 @@
 import sys
 import config
-import ctypes
 import json
 import subprocess
 import urllib.request
