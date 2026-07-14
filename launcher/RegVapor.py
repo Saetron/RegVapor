@@ -17,6 +17,7 @@ __version__ = "0.6.0"
 GITHUB_JSON_URL = "https://raw.githubusercontent.com/Saetron/RegVapor/refs/heads/main/game_registry.json"
 GITHUB_EXE_URL = "https://github.com/Saetron/RegVapor/releases/latest/download/RegVapor.exe"
 
+REGVAPOR_DIR_NAME = "RegVapor"
 LOCAL_JSON_NAME = "RegVapor_game.json"
 ID_FILE_NAME = "game_id.txt"
 BACKUP_DIR_NAME = "registry"
@@ -120,9 +121,9 @@ def select_game_id_gui(available_ids: list) -> str | None:
 # ==============================================================================
 
 # Log function, makes my life easier and doesnt clutter the code for every log entry
-def log_message(base_dir: Path, message: str, *args, max_lines=100):
+def log_message(regvapor_dir: Path, message: str, *args, max_lines=100):
     formatted_message = message.format(*args) if args else message
-    logfile_path = base_dir / LOGFILE
+    logfile_path = regvapor_dir / LOGFILE
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     with open(logfile_path, "a", encoding="utf-8") as f:
@@ -145,14 +146,14 @@ def read_saved_game_id(base_dir: Path) -> str | None:
             return current_id
     return None
 
-def fetch_and_cache_config(base_dir: Path, target_game_id: str | None) -> dict:
+def fetch_and_cache_config(regvapor_dir: Path, target_game_id: str | None) -> dict:
     """
     Attempts to fetch the database from GitHub. 
     - If target_game_id is known, caches ONLY that game's data to RegVapor_game.json.
     - If target_game_id is unknown (first run), returns the full database so the user can choose.
     - If offline, falls back to the local RegVapor_game.json.
     """
-    local_json_path = base_dir / LOCAL_JSON_NAME
+    local_json_path = regvapor_dir / LOCAL_JSON_NAME
     
     # Trying to read the game_registry from GitHub first
     try:
@@ -172,17 +173,17 @@ def fetch_and_cache_config(base_dir: Path, target_game_id: str | None) -> dict:
             else:
                 return full_data
     except Exception as e:
-        log_message(base_dir, "Network offline or GitHub unreachable ({})", e)
+        log_message(regvapor_dir, "Network offline or GitHub unreachable ({})", e)
         
     # Offline fallback logic
     if local_json_path.exists():
         try:
             with open(local_json_path, "r", encoding="utf-8") as f:
                 local_data = json.load(f)
-            log_message(base_dir, "Loaded cached fallback configuration from: {}", LOCAL_JSON_NAME)
+            log_message(regvapor_dir, "Loaded cached fallback configuration from: {}", LOCAL_JSON_NAME)
             return local_data
         except Exception as e:
-            log_message(base_dir, "Failed to read local fallback {}: {}", LOCAL_JSON_NAME, e)
+            log_message(regvapor_dir, "Failed to read local fallback {}: {}", LOCAL_JSON_NAME, e)
             
     return {}
 
@@ -190,7 +191,7 @@ def check_for_updates(base_dir: Path, master_config: dict):
     """Checks for updates and notifies the user with a download link."""
     remote_version = master_config.get("__metadata__", {}).get("latest_launcher_version")
     if not remote_version:
-        log_message(base_dir, "Update check failed: No remote version found.")
+        log_message(regvapor_dir, "Update check failed: No remote version found.")
         return
 
     def parse_ver(v_str):
@@ -369,23 +370,23 @@ def backup_and_clean_registry(key_path: str, backup_dir: Path):
 
 def main():
     base_dir = Path(sys.argv[0]).resolve().parent
-    portable_profile = base_dir / "PortableProfile"
-    #local_appdata = portable_profile / "AppData" / "Local"
-    #roaming_appdata = portable_profile / "AppData" / "Roaming"
-    backup_dir = portable_profile / BACKUP_DIR_NAME
+    regvapor_dir = base_dir / REGVAPOR_DIR_NAME
+    #local_appdata = regvapor_dir / "AppData" / "Local"
+    #roaming_appdata = regvapor_dir / "AppData" / "Roaming"
+    backup_dir = regvapor_dir / BACKUP_DIR_NAME
     
     #os.makedirs(str(local_appdata), exist_ok=True)
     #os.makedirs(str(roaming_appdata), exist_ok=True)
     os.makedirs(str(backup_dir), exist_ok=True)
     
     #env = os.environ.copy()
-    #env["USERPROFILE"] = str(portable_profile)
+    #env["USERPROFILE"] = str(regvapor_dir)
     #env["LOCALAPPDATA"] = str(local_appdata)
     #env["APPDATA"] = str(roaming_appdata)
-
+    log_message(regvapor_dir, "RegVapor Version {}", __version__)
 
     # 1. Read existing configuration profile id if already set
-    game_id = read_saved_game_id(base_dir)
+    game_id = read_saved_game_id(regvapor_dir)
 
     # 2. Grab the relevant configuration dataset
     master_config = fetch_and_cache_config(base_dir, game_id)
