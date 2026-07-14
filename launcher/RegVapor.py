@@ -13,7 +13,7 @@ from pathlib import Path
 # ==============================================================================
 # BASE CONFIGURATION
 # ==============================================================================
-__version__ = "0.5.2"
+__version__ = "0.5.3"
 GITHUB_JSON_URL = "https://raw.githubusercontent.com/Saetron/RegVapor/refs/heads/main/game_registry.json"
 GITHUB_EXE_URL = "https://github.com/Saetron/RegVapor/releases/latest/download/RegVapor.exe"
 
@@ -359,12 +359,12 @@ def backup_and_clean_registry(key_path: str, backup_dir: Path):
 def main():
     base_dir = Path(sys.argv[0]).resolve().parent
     portable_profile = base_dir / "PortableProfile"
-    local_appdata = portable_profile / "AppData" / "Local"
-    roaming_appdata = portable_profile / "AppData" / "Roaming"
+    #local_appdata = portable_profile / "AppData" / "Local"
+    #roaming_appdata = portable_profile / "AppData" / "Roaming"
     backup_dir = portable_profile / BACKUP_DIR_NAME
     
-    os.makedirs(str(local_appdata), exist_ok=True)
-    os.makedirs(str(roaming_appdata), exist_ok=True)
+    #os.makedirs(str(local_appdata), exist_ok=True)
+    #os.makedirs(str(roaming_appdata), exist_ok=True)
     os.makedirs(str(backup_dir), exist_ok=True)
     
     #env = os.environ.copy()
