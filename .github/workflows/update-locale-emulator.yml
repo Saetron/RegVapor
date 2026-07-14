@@ -20,9 +20,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # 1. Download
           gh release download --repo xupefei/Locale-Emulator --pattern "*.zip" --output release.zip
           
-          unzip -j release.zip "*/LoaderDLL.dll" "*/LocaleEmulator.dll" -d third_party/LocaleEmulator/
+          # 2. Extract using -j to discard paths. Since the files are at the root, 
+          # simple glob patterns or just specifying the filenames will work.
+          unzip -j release.zip "LoaderDLL.dll" "LocaleEmulator.dll" -d third_party/LocaleEmulator/
 
       - name: Download License Files
         run: |
@@ -34,10 +37,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add third_party/LocaleEmulator/
-
+          
           if git diff --staged --quiet; then
-            echo "No new DLLs found. Skipping commit."
+            echo "Keine neuen Änderungen gefunden."
           else
-            git commit -m "chore: Update Locale Emulator DLLs to latest release"
+            git commit -m "chore: Update Locale Emulator DLLs"
             git push
           fi
