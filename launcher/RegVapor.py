@@ -1,5 +1,6 @@
 import os
 import config
+import utils
 from utils import log_message as log
 import gui
 import json
@@ -87,10 +88,10 @@ def check_for_updates(master_config: dict):
     if ans == 6:
         os.startfile(config.GITHUB_EXE_URL.replace('/latest/download/', '/releases/latest'))
 
-def load_session_font(font_path: Path) -> bool:
+def load_session_font(font_path: config.Path) -> bool:
     """Loads a custom font into the system font table for the current user session."""
     if not font_path.exists():
-        print(f"Font file missing: {font_path.name}")
+        log("Font file missing: {}", font_path)
         return False
 
     try:
@@ -100,13 +101,13 @@ def load_session_font(font_path: Path) -> bool:
             HWND_BROADCAST = 0xFFFF
             WM_FONTCHANGE = 0x001D
             ctypes.WinDLL('user32.dll').SendMessageW(HWND_BROADCAST, WM_FONTCHANGE, 0, 0)
-            print(f"Successfully injected session font: {font_path.name}")
+            log("Successfully injected session font: {}", font_path.name)
             return True
     except Exception as e:
-        print(f"Failed to inject session font: {e}")
+        log("Failed to inject session font: {}", e)
     return False
 
-def unload_session_font(font_path: Path, regvapor_dir: Path):
+def unload_session_font(font_path: config.Path, regvapor_dir: config.Path):
     """Cleans up the loaded session font from system memory on exit."""
     try:
         gdi32 = ctypes.WinDLL('gdi32.dll')
@@ -114,11 +115,11 @@ def unload_session_font(font_path: Path, regvapor_dir: Path):
         HWND_BROADCAST = 0xFFFF
         WM_FONTCHANGE = 0x001D
         ctypes.WinDLL('user32.dll').SendMessageW(HWND_BROADCAST, WM_FONTCHANGE, 0, 0)
-        print(f"Successfully cleaned up session font: {font_path.name}")
+        log("Successfully cleaned up session font: {}", font_path.name)
     except Exception as e:
-        print(f"Failed to unload session font: {e}")
+        log("Failed to unload session font: {}", e)
 
-def handle_file_backups(base_dir: Path, regvapor_dir: Path, files_list: list) -> list:
+def handle_file_backups(base_dir: config.Path, regvapor_dir: config.Path, files_list: list) -> list:
     """Renames specific game files to .bak before launching. Returns a list of renamed pairs."""
     processed_backups = []
     for rel_path in files_list:
@@ -130,9 +131,9 @@ def handle_file_backups(base_dir: Path, regvapor_dir: Path, files_list: list) ->
                     bak_file.unlink()
                 target_file.rename(bak_file)
                 processed_backups.append((target_file, bak_file))
-                print(f"Temporarily backed up: {rel_path} -> {bak_file.name}")
+                log("Temporarily backed up: {} -> {}", rel_path, bak_file.name)
             except Exception as e:
-                print(f"Failed to backup file {rel_path}: {e}")
+                log("Failed to backup file {}: {}", rel_path, e)
     return processed_backups
 
 def restore_file_backups(backups: list):
@@ -143,9 +144,9 @@ def restore_file_backups(backups: list):
                 if original_file.exists():
                     original_file.unlink()
                 bak_file.rename(original_file)
-                print(f"Restored file layout: {original_file.name}")
+                log("Restored file layout: {}", original_file.name)
             except Exception as e:
-                print(f"Failed to restore file {bak_file.name}: {e}")
+                log("Failed to restore file {}: {}", bak_file.name, e)
 
 def delete_registry_key_tree(root, subkey):
     """Recursively purges a registry branch completely from Windows."""
@@ -162,7 +163,7 @@ def delete_registry_key_tree(root, subkey):
     winreg.CloseKey(key)
     winreg.DeleteKey(root, subkey)
 
-def set_registry_keys(game_dir: Path, backup_dir: Path, entry: dict):
+def set_registry_keys(game_dir: config.Path, backup_dir: config.Path, entry: dict):
     """Injects saved local states or default layouts, matching active path states."""
     key_path = entry["key_path"]
     registry_data = entry["registry_data"]
@@ -208,7 +209,7 @@ def set_registry_keys(game_dir: Path, backup_dir: Path, entry: dict):
 
     winreg.CloseKey(key)
 
-def backup_and_clean_registry(key_path: str, backup_dir: Path):
+def backup_and_clean_registry(key_path: str, backup_dir: config.Path):
     """Harvests user adjustments into files and deletes the Windows keys completely."""
     if not key_path:
         return
@@ -279,17 +280,17 @@ def main():
                     with open(config.local_json_path, "w", encoding="utf-8") as f:
                         json.dump(filtered_data, f, indent=4)
                     master_config = filtered_data
-                    print(f"Cached configuration for '{game_id}' locally to {config.LOCAL_JSON_NAME}.")
+                    log("Cached configuration for '{}' locally to {}.", game_id, config.local_json_path)
                 except Exception as e:
-                    print(f"Failed to write local backup cache: {e}")
+                    log("Failed to write local backup cache: {}", e)
             time.sleep(0.2)
         else:
             return
 
-    print(f"RegVapor Launcher v{config.__version__} initializing for ID: {game_id}")
-    
+    log("RegVapor Launcher v{} initializing for ID: {}", config.__version__, game_id)
+
     if not master_config or game_id not in master_config:
-        print(f"Error: Configurations for '{game_id}' not found.")
+        log("Error: Configurations for '{}' not found.", game_id)
         return
 
     entry = master_config[game_id]
@@ -306,7 +307,7 @@ def main():
             break
 
     if not game_exe:
-        print(f"Executable missing. Looked for: {exe_candidates} inside {config.base_dir}")
+        log("Executable missing. Looked for: {} inside {}", exe_candidates, config.base_dir)
         return
 
     font_loaded = False
@@ -324,17 +325,17 @@ def main():
     try:
         set_registry_keys(config.base_dir, config.backup_dir, entry)
     except Exception as e:
-        print(f"Failed setting registry parameters: {e}")
+        log("Failed setting registry parameters: {}", e)
 
     try:
         subprocess.run([str(game_exe)], cwd=str(config.base_dir))
     except Exception as e:
-        print(f"Engine failed to run execution loops: {e}")
+        log("Engine failed to run execution loops: {}", e)
     finally:
         try:
             backup_and_clean_registry(key_path, config.backup_dir)
         except Exception as e:
-            print(f"Scrub and backup failure: {e}")
+            log("Scrub and backup failure: {}", e)
         
         if active_backups:
             restore_file_backups(active_backups)
