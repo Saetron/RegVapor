@@ -119,7 +119,21 @@ def select_game_id_gui(available_ids: list) -> str | None:
 
 # ==============================================================================
 
+# Log function, makes my life easier and doesnt clutter the code for every log entry
+def log_message(message: str, *args, max_lines=100, base_dir):
+    formatted_message = message.format(*args) if args else message
+    logfile_path = base_dir / LOGFILE
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    with open(logfile_path, "a", encoding="utf-8") as f:
+        f.write(f"[{timestamp}] {formatted_message}\n")
+    
+    if os.path.exists(logfile_path):
+        with open(logfile_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        if len(lines) > max_lines:
+            with open(logfile_path, "w", encoding="utf-8") as f:
+                f.writelines(lines[-max_lines:])
 
 def read_saved_game_id(base_dir: Path) -> str | None:
     """Checks if a game_id.txt exists and returns its contents if valid."""
@@ -139,7 +153,6 @@ def fetch_and_cache_config(base_dir: Path, target_game_id: str | None) -> dict:
     - If offline, falls back to the local RegVapor_game.json.
     """
     local_json_path = base_dir / LOCAL_JSON_NAME
-    logfile_path = base_dir / LOGFILE
     
     # Trying to read the game_registry from GitHub first
     try:
