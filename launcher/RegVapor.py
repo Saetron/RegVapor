@@ -186,31 +186,33 @@ def fetch_and_cache_config(base_dir: Path, target_game_id: str | None) -> dict:
             
     return {}
 
-def check_for_updates(master_config: dict):
+def check_for_updates(base_dir: Path, master_config: dict):
     """Checks for updates and notifies the user with a download link."""
     remote_version = master_config.get("__metadata__", {}).get("latest_launcher_version")
     if not remote_version:
+        log_message(base_dir, "Update check failed: No remote version found.")
         return
 
-    # Simple semantic patch comparison
     def parse_ver(v_str):
-        return [int(x) for x in v_str.split(".")]
+        clean_v = ''.join(c for c in v_str if c.isdigit() or c == '.')
+        return [int(x) for x in clean_v.split(".")]
 
     try:
-        if parse_ver(remote_version) <= parse_ver(__version__):
+        remote_parsed = parse_ver(remote_version)
+        local_parsed = parse_ver(__version__)
+        log_message(base_dir, "Checking updates: Remote v{}, Local v{}", remote_version, __version__)
+        if remote_parsed <= local_parsed:
             return
-    except Exception:
+    except Exception as e:
+        log_message(base_dir, "Update check parsing error: {}", e)
         return
 
-    # Notify user without auto-updating
     msg = (f"A new version of RegVapor is available (v{remote_version}).\n\n"
-           f"Please download the update here:\n{GITHUB_EXE_URL.replace('/latest/download/', '/releases/latest')}\n\n"
            "Would you like to open the release page now?")
     
-    # MB_YESNO | MB_ICONINFORMATION
     ans = ctypes.windll.user32.MessageBoxW(0, msg, "RegVapor Update Available", 0x04 | 0x40)
     
-    if ans == 6: # IDYES
+    if ans == 6:
         os.startfile(GITHUB_EXE_URL.replace('/latest/download/', '/releases/latest'))
 
 def load_session_font(font_path: Path) -> bool:
@@ -390,7 +392,7 @@ def main():
 
     # 3. Securely check for and run application updater logic
     if master_config:
-        check_for_updates(master_config)
+        check_for_updates(base_dir, master_config)
 
     # 4. If missing or unconfigured profile id, launch GUI fallback 
     if not game_id or game_id == "ENTER_GAME_ID_HERE":
