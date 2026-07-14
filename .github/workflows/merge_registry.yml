@@ -20,7 +20,7 @@ jobs:
 
     - name: Generate Metadata
       run: |
-        VERSION=$(grep -oP '__version__\s*=\s*"\K[^"]+' RegVapor.py)
+        VERSION=$(grep -oP '__version__\s*=\s*"\K[^"]+' launcher/RegVapor.py)
         echo "Detected version: $VERSION"
         mkdir -p registry_src
         echo "{\"__metadata__\": {\"latest_launcher_version\": \"$VERSION\"}}" > registry_src/00_metadata.json
