@@ -107,5 +107,5 @@ If a game crashes, throws a black screen, or hangs during intro videos (or video
 5.  Apply the changes for **both 32-bit and 64-bit** execution layouts.
 
 ### Third-Party Components
-
+---
 This project uses [Locale-Emulator](https://github.com/xupefei/Locale-Emulator) for handling localization tasks. The original license files are included in third_party/LocaleEmulator/.
