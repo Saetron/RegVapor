@@ -7,22 +7,9 @@ from ctypes import wintypes
 import winreg
 import subprocess
 import urllib.request
-from datetime import datetime
+from utils import log_message
 from pathlib import Path
-
-# ==============================================================================
-# BASE CONFIGURATION
-# ==============================================================================
-__version__ = "0.6.0"
-GITHUB_JSON_URL = "https://raw.githubusercontent.com/Saetron/RegVapor/refs/heads/main/game_registry.json"
-GITHUB_EXE_URL = "https://github.com/Saetron/RegVapor/releases/latest/download/RegVapor.exe"
-
-REGVAPOR_DIR_NAME = "RegVapor"
-LOCAL_JSON_NAME = "RegVapor_game.json"
-ID_FILE_NAME = "game_id.txt"
-BACKUP_DIR_NAME = "registry"
-LOGFILE = "RegVapor.log"
-# ==============================================================================
+import config
 
 # Windows API Constants & Type Definitions for Raw UI Drawing
 GWL_USERDATA = -21
@@ -121,24 +108,10 @@ def select_game_id_gui(available_ids: list) -> str | None:
 # ==============================================================================
 
 # Log function, makes my life easier and doesnt clutter the code for every log entry
-def log_message(regvapor_dir: Path, message: str, *args, max_lines=100):
-    formatted_message = message.format(*args) if args else message
-    logfile_path = regvapor_dir / LOGFILE
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    with open(logfile_path, "a", encoding="utf-8") as f:
-        f.write(f"[{timestamp}] {formatted_message}\n")
-    
-    if os.path.exists(logfile_path):
-        with open(logfile_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-        if len(lines) > max_lines:
-            with open(logfile_path, "w", encoding="utf-8") as f:
-                f.writelines(lines[-max_lines:])
-
-def read_saved_game_id(base_dir: Path) -> str | None:
+def read_saved_game_id(regvapor_dir: Path) -> str | None:
     """Checks if a game_id.txt exists and returns its contents if valid."""
-    id_file = base_dir / ID_FILE_NAME
+    id_file = regvapor_dir / ID_FILE_NAME
     if id_file.exists():
         with open(id_file, "r", encoding="utf-8") as f:
             current_id = f.read().strip()
@@ -187,7 +160,7 @@ def fetch_and_cache_config(regvapor_dir: Path, target_game_id: str | None) -> di
             
     return {}
 
-def check_for_updates(base_dir: Path, master_config: dict):
+def check_for_updates(regvapor_dir: Path, master_config: dict):
     """Checks for updates and notifies the user with a download link."""
     remote_version = master_config.get("__metadata__", {}).get("latest_launcher_version")
     if not remote_version:
@@ -201,11 +174,11 @@ def check_for_updates(base_dir: Path, master_config: dict):
     try:
         remote_parsed = parse_ver(remote_version)
         local_parsed = parse_ver(__version__)
-        log_message(base_dir, "Checking updates: Remote v{}, Local v{}", remote_version, __version__)
+        log_message(regvapor_dir, "Checking updates: Remote v{}, Local v{}", remote_version, __version__)
         if remote_parsed <= local_parsed:
             return
     except Exception as e:
-        log_message(base_dir, "Update check parsing error: {}", e)
+        log_message(regvapor_dir, "Update check parsing error: {}", e)
         return
 
     msg = (f"A new version of RegVapor is available (v{remote_version}).\n\n"
@@ -235,7 +208,7 @@ def load_session_font(font_path: Path) -> bool:
         print(f"Failed to inject session font: {e}")
     return False
 
-def unload_session_font(font_path: Path):
+def unload_session_font(font_path: Path, regvapor_dir: Path):
     """Cleans up the loaded session font from system memory on exit."""
     try:
         gdi32 = ctypes.WinDLL('gdi32.dll')
@@ -247,7 +220,7 @@ def unload_session_font(font_path: Path):
     except Exception as e:
         print(f"Failed to unload session font: {e}")
 
-def handle_file_backups(base_dir: Path, files_list: list) -> list:
+def handle_file_backups(base_dir: Path, regvapor_dir: Path, files_list: list) -> list:
     """Renames specific game files to .bak before launching. Returns a list of renamed pairs."""
     processed_backups = []
     for rel_path in files_list:
@@ -393,7 +366,7 @@ def main():
 
     # 3. Securely check for and run application updater logic
     if master_config:
-        check_for_updates(base_dir, master_config)
+        check_for_updates(regvapor_dir, master_config)
 
     # 4. If missing or unconfigured profile id, launch GUI fallback 
     if not game_id or game_id == "ENTER_GAME_ID_HERE":
@@ -463,7 +436,7 @@ def main():
     active_backups = []
     backup_files_list = config.get("backup_files", [])
     if backup_files_list and isinstance(backup_files_list, list):
-        active_backups = handle_file_backups(base_dir, backup_files_list)
+        active_backups = handle_file_backups(base_dir, regvapor_dir, backup_files_list)
 
     try:
         set_registry_keys(base_dir, backup_dir, config)
@@ -484,7 +457,7 @@ def main():
             restore_file_backups(active_backups)
         
         if font_loaded and font_path:
-            unload_session_font(font_path)
+            unload_session_font(font_path, regvapor_dir)
 
 if __name__ == "__main__":
     main()
