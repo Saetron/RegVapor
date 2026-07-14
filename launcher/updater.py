@@ -3,6 +3,7 @@ import os
 import time
 import urllib.request
 from pathlib import Path
+import subprocess
 import shutil
 import config
 from utils import log_message as log
@@ -25,6 +26,25 @@ def run_update():
         log("Updater failed to replace the executable: {}", e)
         time.sleep(5)
 
+    # Cleanup, delete Updater after execution
+    updater_path = sys.argv[0]
+    batch_script = Path(os.environ["TEMP"]) / "cleanup_updater.bat"
+
+    with open(batch_script, "w") as f:
+        f.write(f"""
+        @echo off
+        :loop
+        tasklist /fi "PID eq {os.getpid()}" | find "{os.getpid()}" >nul
+        if not errorlevel 1 (
+            timeout /t 1 /nobreak >nul
+            goto :loop
+        )
+        del "{updater_path}"
+        del "%~f0"
+        """)
+
+        log("Launching cleanup script to delete updater: {}", batch_script)
+        subprocess.Popen([str(batch_script)], shell=True)
 if __name__ == "__main__":
     log("RegVapor Updater Version {}", config.__version__)
     run_update()
