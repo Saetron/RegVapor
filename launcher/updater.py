@@ -13,8 +13,7 @@ def run_update():
         log("Error in updater: Missing argument.")
         return
     target_exe = Path(sys.argv[1])
-    base_dir  = Path(sys.argv[2])
-    new_exe = base_dir / "RegVapor_new.exe"
+    new_exe = config.base_dir / "RegVapor_new.exe"
     urllib.request.urlretrieve(config.GITHUB_EXE_URL, new_exe)
     log("Downloaded new version to {}", new_exe)
     time.sleep(2)
