@@ -1,107 +1,13 @@
 import os
 import config
+from utils import log_message as log
+import gui
 import sys
 import json
 import time
-import ctypes
-from ctypes import wintypes
 import winreg
 import subprocess
 import urllib.request
-from utils import log_message
-from pathlib import Path
-
-# Windows API Constants & Type Definitions for Raw UI Drawing
-GWL_USERDATA = -21
-WM_INITDIALOG = 0x0110
-WM_COMMAND = 0x0111
-CB_ADDSTRING = 0x0143
-CB_SETCURSEL = 0x014E
-CB_GETCURSEL = 0x0147
-CB_GETLBTEXT = 0x0148
-CBS_DROPDOWNLIST = 0x0003
-WS_CHILD = 0x40000000
-WS_VISIBLE = 0x10000000
-WS_TABSTOP = 0x00010000
-
-# Using c_ssize_t to prevent Windowmanager issuess with games like Guilty The Sin
-# select_game_id_gui and DLGTEMPLATE are created entirely with Gemini, as I have no clue about the Windows API. I just know it works and is stable enough for this purpose.
-WndProcType = ctypes.WINFUNCTYPE(ctypes.c_ssize_t, wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM)
-
-class DLGTEMPLATE(ctypes.Structure):
-    _fields_ = [
-        ("style", wintypes.DWORD),
-        ("dwExtendedStyle", wintypes.DWORD),
-        ("cdit", wintypes.WORD),
-        ("x", wintypes.SHORT),
-        ("y", wintypes.SHORT),
-        ("cx", wintypes.SHORT),
-        ("cy", wintypes.SHORT)
-    ]
-
-def select_game_id_gui(available_ids: list) -> str | None:
-    user32 = ctypes.windll.user32
-    gdi32 = ctypes.windll.gdi32
-    chosen_id = [None]
-
-    @WndProcType
-    def dialog_proc(hwnd, msg, wparam, lparam):
-        if msg == WM_INITDIALOG:
-            user32.SetWindowTextW(hwnd, "RegVapor - Select Configuration")
-            
-            rect = wintypes.RECT()
-            user32.GetWindowRect(hwnd, ctypes.byref(rect))
-            screen_width = user32.GetSystemMetrics(0)
-            screen_height = user32.GetSystemMetrics(1)
-            width = rect.right - rect.left
-            height = rect.bottom - rect.top
-            user32.MoveWindow(hwnd, (screen_width - width) // 2, (screen_height - height) // 2, width, height, True)
-
-            h_font = gdi32.CreateFontW(15, 0, 0, 0, 400, False, False, False, 1, 0, 0, 0, 0, "Segoe UI")
-
-            label_text = "No local configuration profile found.\nSelect a configuration from the profile list:"
-            h_label = user32.CreateWindowExW(0, "Static", label_text, WS_CHILD | WS_VISIBLE, 15, 12, 250, 30, hwnd, 100, 0, 0)
-            user32.SendMessageW(h_label, 0x0030, h_font, 1)
-
-            h_combo = user32.CreateWindowExW(0, "ComboBox", "", WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST, 15, 48, 250, 200, hwnd, 101, 0, 0)
-            user32.SendMessageW(h_combo, 0x0030, h_font, 1)
-
-            for game_id in available_ids:
-                user32.SendMessageW(h_combo, CB_ADDSTRING, 0, game_id)
-            user32.SendMessageW(h_combo, CB_SETCURSEL, 0, 0)
-
-            h_button = user32.CreateWindowExW(0, "Button", "Confirm & Save", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 90, 85, 100, 26, hwnd, 1, 0, 0)
-            user32.SendMessageW(h_button, 0x0030, h_font, 1)
-            
-            user32.SetFocus(h_combo)
-            return 0
-
-        elif msg == WM_COMMAND:
-            loword_wparam = wparam & 0xFFFF
-            if loword_wparam == 1:
-                h_combo = user32.GetDlgItem(hwnd, 101)
-                idx = user32.SendMessageW(h_combo, CB_GETCURSEL, 0, 0)
-                if idx != -1:
-                    length = user32.SendMessageW(h_combo, 0x0149, idx, 0)
-                    buffer = ctypes.create_unicode_buffer(length + 1)
-                    user32.SendMessageW(h_combo, CB_GETLBTEXT, idx, ctypes.byref(buffer))
-                    chosen_id[0] = buffer.value
-                user32.EndDialog(hwnd, 1)
-                return 1
-            elif loword_wparam == 2:
-                user32.EndDialog(hwnd, 0)
-                return 1
-        return 0
-
-    dialog_template = DLGTEMPLATE(
-        style=0x10C800C4,
-        dwExtendedStyle=0,
-        cdit=0,
-        x=0, y=0, cx=210, cy=100
-    )
-
-    user32.DialogBoxIndirectParamW(0, ctypes.byref(dialog_template), 0, dialog_proc, 0)
-    return chosen_id[0]
 
 
 
@@ -143,17 +49,17 @@ def fetch_and_cache_config(target_game_id: str | None) -> dict:
             else:
                 return full_data
     except Exception as e:
-        log_message("Network offline or GitHub unreachable ({})", e)
+        log("Network offline or GitHub unreachable ({})", e)
         
     # Offline fallback logic
     if config.local_json_path.exists():
         try:
             with open(config.local_json_path, "r", encoding="utf-8") as f:
                 local_data = json.load(f)
-            log_message("Loaded cached fallback configuration from: {}", config.LOCAL_JSON_NAME)
+            log("Loaded cached fallback configuration from: {}", config.LOCAL_JSON_NAME)
             return local_data
         except Exception as e:
-            log_message("Failed to read local fallback {}: {}", config.LOCAL_JSON_NAME, e)
+            log("Failed to read local fallback {}: {}", config.LOCAL_JSON_NAME, e)
             
     return {}
 
@@ -161,7 +67,7 @@ def check_for_updates(master_config: dict):
     """Checks for updates and notifies the user with a download link."""
     remote_version = master_config.get("__metadata__", {}).get("latest_launcher_version")
     if not remote_version:
-        log_message("Update check failed: No remote version found.")
+        log("Update check failed: No remote version found.")
         return
 
     def parse_ver(v_str):
@@ -171,11 +77,11 @@ def check_for_updates(master_config: dict):
     try:
         remote_parsed = parse_ver(remote_version)
         local_parsed = parse_ver(config.__version__)
-        log_message("Checking updates: Remote v{}, Local v{}", remote_version, config.__version__)
+        log("Checking updates: Remote v{}, Local v{}", remote_version, config.__version__)
         if remote_parsed <= local_parsed:
             return
     except Exception as e:
-        log_message("Update check parsing error: {}", e)
+        log("Update check parsing error: {}", e)
         return
 
     msg = (f"A new version of RegVapor is available (v{remote_version}).\n\n"
@@ -340,7 +246,7 @@ def backup_and_clean_registry(key_path: str, backup_dir: Path):
 
 def main():
     os.makedirs(str(config.backup_dir), exist_ok=True)
-    log_message("RegVapor Version {}", config.__version__)
+    log("RegVapor Version {}", config.__version__)
 
     # 1. Read existing configuration profile id if already set
     game_id = read_saved_game_id(config.regvapor_dir)
