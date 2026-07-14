@@ -7,6 +7,9 @@ on:
     paths:
       - 'registry_src/**' # Triggers when files inside your source directory change
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: ubuntu-latest
