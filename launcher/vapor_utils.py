@@ -8,7 +8,6 @@ import gui
 from utils import log_message as log
 
 def check_for_updates(master_config: dict):
-    """Checks for updates and notifies the user with a download link."""
     remote_version = master_config.get("__metadata__", {}).get("latest_launcher_version")
     if not remote_version:
         log("Update check failed: No remote version found.")
@@ -49,7 +48,7 @@ def read_saved_game_id() -> str | None:
             return current_id
     return None
 
-def fetch_and_cache_config(target_game_id: str | None) -> dict:
+def fetch_and_cache_config(target_game_id: str | None, master_config: dict) -> dict:
     """
     Attempts to fetch the database from GitHub. 
     - If target_game_id is known, caches ONLY that game's data to RegVapor_game.json.
@@ -58,24 +57,16 @@ def fetch_and_cache_config(target_game_id: str | None) -> dict:
     """
    
     # Trying to read the game_registry from GitHub first
-    try:
-        with urllib.request.urlopen(config.GITHUB_JSON_URL, timeout=5) as response:
-            full_data = json.loads(response.read().decode())
-            
-            if target_game_id:
-                if target_game_id in full_data:
-                    # Filter to current game_id to save storage and allow offline fallback
-                    filtered_data = {target_game_id: full_data[target_game_id]}
-                    with open(config.local_json_path, "w", encoding="utf-8") as f:
-                        json.dump(filtered_data, f, indent=4)
-                    return filtered_data
-                else:
-                    # If ID doesnt exist in the fetched data, return full_data for GUI selection, avoids silent failure when remote data changes
-                    return full_data
-            else:
-                return full_data
-    except Exception as e:
-        log("Network offline or GitHub unreachable ({})", e)
+    if target_game_id:
+        if target_game_id in master_config:
+            filtered_data = {target_game_id: master_config[target_game_id]}
+            with open(config.local_json_path, "w", encoding="utf-8") as f:
+                json.dump(filtered_data, f, indent=4)
+            return filtered_data
+        else:
+            return master_config
+    else:
+        return master_config
         
     # Offline fallback logic
     if config.local_json_path.exists():
@@ -86,5 +77,13 @@ def fetch_and_cache_config(target_game_id: str | None) -> dict:
             return local_data
         except Exception as e:
             log("Failed to read local fallback {}: {}", config.LOCAL_JSON_NAME, e)
-            
     return {}
+
+def get_master_config() -> dict:
+    try:
+        with urllib.request.urlopen(config.GITHUB_JSON_URL, timeout=5) as response:
+            full_data = json.loads(response.read().decode())
+        return full_data
+    except Exception as e:
+        log("Network offline or GitHub unreachable ({})", e)
+        return {}

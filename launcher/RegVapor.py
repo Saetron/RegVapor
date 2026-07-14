@@ -13,9 +13,12 @@ def main():
     log("RegVapor Version {}", config.__version__)
 
     game_id = vapor.read_saved_game_id()
-    master_config = vapor.fetch_and_cache_config(game_id)
+    master_config = vapor.get_master_config()
+
     if master_config:
         vapor.check_for_updates(master_config)
+
+    master_config = vapor.fetch_and_cache_config(game_id, master_config)
 
     if not game_id or game_id == "ENTER_GAME_ID_HERE":
         if not master_config:
