@@ -9,6 +9,7 @@ import config
 from utils import log_message as log
 
 def run_update():
+    updater_name = "RegVapor_updater.exe"
     if len(sys.argv) < 3:
         log("Error in updater: Missing argument.")
         return
@@ -34,11 +35,13 @@ def run_update():
         f.write(f"""
         @echo off
         :loop
-        tasklist /fi "PID eq {os.getpid()}" | find "{os.getpid()}" >nul
+        :: Check if the process is still running
+        tasklist /fi "IMAGENAME eq {updater_name}" | find "{updater_name}" >nul
         if not errorlevel 1 (
             timeout /t 1 /nobreak >nul
             goto :loop
         )
+        :: Process is gone, now delete
         del "{updater_path}"
         del "%~f0"
         """)
