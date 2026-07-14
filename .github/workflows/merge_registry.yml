@@ -7,6 +7,7 @@ on:
     paths:
       - 'registry_src/**'
       - 'launcher/RegVapor.py'
+  workflow_dispatch:
 
 permissions:
   contents: write
