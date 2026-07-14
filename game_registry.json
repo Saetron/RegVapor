@@ -1,4 +1,7 @@
 {
+  "__metadata__": {
+    "latest_launcher_version": "0.5.3"
+  },
   "chain_the_lost_footprints": {
     "key_path": "Software\\ZYX\\CHAINUS",
     "game_exe": "CHAINUS.EXE",
