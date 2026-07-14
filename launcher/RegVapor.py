@@ -13,7 +13,7 @@ from pathlib import Path
 # ==============================================================================
 # BASE CONFIGURATION
 # ==============================================================================
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 GITHUB_JSON_URL = "https://raw.githubusercontent.com/Saetron/RegVapor/refs/heads/main/game_registry.json"
 GITHUB_EXE_URL = "https://github.com/Saetron/RegVapor/releases/latest/download/RegVapor.exe"
 
@@ -372,6 +372,7 @@ def main():
     #env["LOCALAPPDATA"] = str(local_appdata)
     #env["APPDATA"] = str(roaming_appdata)
 
+
     # 1. Read existing configuration profile id if already set
     game_id = read_saved_game_id(base_dir)
 
@@ -380,7 +381,7 @@ def main():
 
     # 3. Securely check for and run application updater logic
     if master_config:
-        check_and_apply_updates(base_dir, master_config)
+        check_for_updates(master_config)
 
     # 4. If missing or unconfigured profile id, launch GUI fallback 
     if not game_id or game_id == "ENTER_GAME_ID_HERE":
@@ -458,7 +459,7 @@ def main():
         print(f"Failed setting registry parameters: {e}")
 
     try:
-        subprocess.run([str(game_exe)], env=env, cwd=str(base_dir))
+        subprocess.run([str(game_exe)], cwd=str(base_dir))
     except Exception as e:
         print(f"Engine failed to run execution loops: {e}")
     finally:
