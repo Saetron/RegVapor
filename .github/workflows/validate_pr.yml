@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'registry_src/**' # Triggers when files inside your source directory change
+      - 'registry_src/**'
 
 permissions:
   contents: read

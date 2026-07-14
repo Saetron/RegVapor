@@ -5,10 +5,11 @@ on:
     branches:
       - main
     paths:
-      - 'launcher/**' # Only triggers when files inside this folder change
+      - 'launcher/**'
+  workflow_dispatch:
 
 permissions:
-  contents: write # Crucial permission required to generate releases
+  contents: write
 
 jobs:
   build:
@@ -33,7 +34,7 @@ jobs:
       shell: bash
       run: |
         # Pulls the __version__ line out of the Python script dynamically
-        VERSION=$(grep "__version__" launcher/RegVapor.py | head -n 1 | cut -d'"' -f2)
+        VERSION=$(grep "__version__" launcher/config.py | head -n 1 | cut -d'"' -f2)
         echo "LAUNCHER_VERSION=$VERSION" >> $GITHUB_ENV
         echo "Extracted version: $VERSION"
 
