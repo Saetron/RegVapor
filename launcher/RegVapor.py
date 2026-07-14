@@ -1,4 +1,5 @@
 import os
+import config
 import sys
 import json
 import time
@@ -9,7 +10,6 @@ import subprocess
 import urllib.request
 from utils import log_message
 from pathlib import Path
-import config
 
 # Windows API Constants & Type Definitions for Raw UI Drawing
 GWL_USERDATA = -21
@@ -264,10 +264,10 @@ def delete_registry_key_tree(root, subkey):
     winreg.CloseKey(key)
     winreg.DeleteKey(root, subkey)
 
-def set_registry_keys(game_dir: Path, backup_dir: Path, config: dict):
+def set_registry_keys(game_dir: Path, backup_dir: Path, entry: dict):
     """Injects saved local states or default layouts, matching active path states."""
-    key_path = config["key_path"]
-    registry_data = config["registry_data"]
+    key_path = entry["key_path"]
+    registry_data = entry["registry_data"]
     
     if not key_path:
         return
@@ -342,20 +342,7 @@ def backup_and_clean_registry(key_path: str, backup_dir: Path):
     delete_registry_key_tree(winreg.HKEY_CURRENT_USER, key_path)
 
 def main():
-    base_dir = Path(sys.argv[0]).resolve().parent
-    regvapor_dir = base_dir / REGVAPOR_DIR_NAME
-    #local_appdata = regvapor_dir / "AppData" / "Local"
-    #roaming_appdata = regvapor_dir / "AppData" / "Roaming"
-    backup_dir = regvapor_dir / BACKUP_DIR_NAME
-    
-    #os.makedirs(str(local_appdata), exist_ok=True)
-    #os.makedirs(str(roaming_appdata), exist_ok=True)
-    os.makedirs(str(backup_dir), exist_ok=True)
-    
-    #env = os.environ.copy()
-    #env["USERPROFILE"] = str(regvapor_dir)
-    #env["LOCALAPPDATA"] = str(local_appdata)
-    #env["APPDATA"] = str(roaming_appdata)
+    os.makedirs(str(config.backup_dir), exist_ok=True)
     log_message(regvapor_dir, "RegVapor Version {}", __version__)
 
     # 1. Read existing configuration profile id if already set
@@ -409,10 +396,10 @@ def main():
         print(f"Error: Configurations for '{game_id}' not found.")
         return
 
-    config = master_config[game_id]
-    key_path = config.get("key_path", "")
+    entry = master_config[game_id]
+    key_path = entry.get("key_path", "")
     
-    game_exe_setting = config["game_exe"]
+    game_exe_setting = entry["game_exe"]
     exe_candidates = [game_exe_setting] if isinstance(game_exe_setting, str) else game_exe_setting
     
     game_exe = None
@@ -428,18 +415,18 @@ def main():
 
     font_loaded = False
     font_path = None
-    font_filename = config.get("custom_font")
+    font_filename = entry.get("custom_font")
     if font_filename:
         font_path = base_dir / font_filename
         font_loaded = load_session_font(font_path)
 
     active_backups = []
-    backup_files_list = config.get("backup_files", [])
+    backup_files_list = entry.get("backup_files", [])
     if backup_files_list and isinstance(backup_files_list, list):
         active_backups = handle_file_backups(base_dir, regvapor_dir, backup_files_list)
 
     try:
-        set_registry_keys(base_dir, backup_dir, config)
+        set_registry_keys(base_dir, backup_dir, entry)
     except Exception as e:
         print(f"Failed setting registry parameters: {e}")
 
