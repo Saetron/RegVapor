@@ -13,7 +13,7 @@ from pathlib import Path
 # ==============================================================================
 # BASE CONFIGURATION
 # ==============================================================================
-__version__ = "0.5.3"
+__version__ = "0.6.0"
 GITHUB_JSON_URL = "https://raw.githubusercontent.com/Saetron/RegVapor/refs/heads/main/game_registry.json"
 GITHUB_EXE_URL = "https://github.com/Saetron/RegVapor/releases/latest/download/RegVapor.exe"
 
@@ -35,7 +35,8 @@ WS_CHILD = 0x40000000
 WS_VISIBLE = 0x10000000
 WS_TABSTOP = 0x00010000
 
-# Fix: Use c_ssize_t as the architecture-safe INT_PTR alternative for 64-bit callback loops
+# Using c_ssize_t to prevent Windowmanager issuess with games like Guilty The Sin
+# select_game_id_gui and DLGTEMPLATE are created entirely with Gemini, as I have no clue about the Windows API. I just know it works and is stable enough for this purpose.
 WndProcType = ctypes.WINFUNCTYPE(ctypes.c_ssize_t, wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM)
 
 class DLGTEMPLATE(ctypes.Structure):
@@ -50,7 +51,6 @@ class DLGTEMPLATE(ctypes.Structure):
     ]
 
 def select_game_id_gui(available_ids: list) -> str | None:
-    """Invokes a purely native Windows API drop-down dialog box without any Python UI library dependencies."""
     user32 = ctypes.windll.user32
     gdi32 = ctypes.windll.gdi32
     chosen_id = [None]
@@ -58,10 +58,8 @@ def select_game_id_gui(available_ids: list) -> str | None:
     @WndProcType
     def dialog_proc(hwnd, msg, wparam, lparam):
         if msg == WM_INITDIALOG:
-            # Set the window title
             user32.SetWindowTextW(hwnd, "RegVapor - Select Configuration")
             
-            # Center the dialog on the display layout
             rect = wintypes.RECT()
             user32.GetWindowRect(hwnd, ctypes.byref(rect))
             screen_width = user32.GetSystemMetrics(0)
@@ -70,59 +68,57 @@ def select_game_id_gui(available_ids: list) -> str | None:
             height = rect.bottom - rect.top
             user32.MoveWindow(hwnd, (screen_width - width) // 2, (screen_height - height) // 2, width, height, True)
 
-            # Apply native Segoe UI styling to match the modern operating system
             h_font = gdi32.CreateFontW(15, 0, 0, 0, 400, False, False, False, 1, 0, 0, 0, 0, "Segoe UI")
 
-            # Create the structural label description text
-            label_text = "No local configuration profile found.\nSelect a configuration from the remote master index:"
+            label_text = "No local configuration profile found.\nSelect a configuration from the profile list:"
             h_label = user32.CreateWindowExW(0, "Static", label_text, WS_CHILD | WS_VISIBLE, 15, 12, 250, 30, hwnd, 100, 0, 0)
             user32.SendMessageW(h_label, 0x0030, h_font, 1)
 
-            # Create the dropdown ComboBox wrapper element
             h_combo = user32.CreateWindowExW(0, "ComboBox", "", WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST, 15, 48, 250, 200, hwnd, 101, 0, 0)
             user32.SendMessageW(h_combo, 0x0030, h_font, 1)
 
-            # Populate choices inside the dropdown combo box
             for game_id in available_ids:
                 user32.SendMessageW(h_combo, CB_ADDSTRING, 0, game_id)
             user32.SendMessageW(h_combo, CB_SETCURSEL, 0, 0)
 
-            # Create the action execution Button
             h_button = user32.CreateWindowExW(0, "Button", "Confirm & Save", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 90, 85, 100, 26, hwnd, 1, 0, 0)
             user32.SendMessageW(h_button, 0x0030, h_font, 1)
             
-            # Force focus targeting onto the drop-down element layout
             user32.SetFocus(h_combo)
             return 0
 
         elif msg == WM_COMMAND:
             loword_wparam = wparam & 0xFFFF
-            if loword_wparam == 1:  # Confirm & Save Clicked
+            if loword_wparam == 1:
                 h_combo = user32.GetDlgItem(hwnd, 101)
                 idx = user32.SendMessageW(h_combo, CB_GETCURSEL, 0, 0)
                 if idx != -1:
-                    length = user32.SendMessageW(h_combo, 0x0149, idx, 0) # CB_GETLBTEXTLEN
+                    length = user32.SendMessageW(h_combo, 0x0149, idx, 0)
                     buffer = ctypes.create_unicode_buffer(length + 1)
                     user32.SendMessageW(h_combo, CB_GETLBTEXT, idx, ctypes.byref(buffer))
                     chosen_id[0] = buffer.value
                 user32.EndDialog(hwnd, 1)
                 return 1
-            elif loword_wparam == 2:  # Cancel or window closed
+            elif loword_wparam == 2:
                 user32.EndDialog(hwnd, 0)
                 return 1
         return 0
 
-    # Build memory template structure for the core system dialog window wrapper
     dialog_template = DLGTEMPLATE(
-        style=0x10C800C4, # WS_POPUP | WS_CAPTION | WS_SYSMENU | DS_MODALFRAME | WS_VISIBLE
+        style=0x10C800C4,
         dwExtendedStyle=0,
         cdit=0,
         x=0, y=0, cx=210, cy=100
     )
 
-    # Executing direct modal window call inside core process thread context
     user32.DialogBoxIndirectParamW(0, ctypes.byref(dialog_template), 0, dialog_proc, 0)
     return chosen_id[0]
+
+
+
+# ==============================================================================
+
+
 
 def read_saved_game_id(base_dir: Path) -> str | None:
     """Reads and returns the game identifier if it exists and is configured."""
