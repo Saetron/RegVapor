@@ -1,15 +1,15 @@
 
 # RegVapor
 
-  
+
 
 A lightweight, portable game launcher utility that resolves Windows Registry dependencies on the fly. It fetches unified configurations from a remote repository, maps execution paths dynamically, manages session-specific assets, and runs target games completely isolated inside a self-contained portable user profile.
 
-  
+
 
 ## 🚀 Key Features
 
-  
+
 
 *  **Dynamic Registry Injection:** Pre-fills required keys, absolute folder paths (`{install_dir}` / `{install_src}`), and binary configurations directly into the Windows Registry before execution.
 
@@ -21,11 +21,11 @@ A lightweight, portable game launcher utility that resolves Windows Registry dep
 
 
 
-  
+
 
 ## 🛠 How to Use It
 
-  
+
 
 1.  **Place the Launcher:** Drop the compiled `RegVapor` launcher executable directly into your target game's main installation folder (alongside the main game executable).
 
@@ -33,21 +33,21 @@ A lightweight, portable game launcher utility that resolves Windows Registry dep
 
 3.  **Play:** Launch `RegVapor`. It will instantly pull down the configuration database, fix files, inject parameters, execute the game engine, and wait to perform structural cleanup when you quit.
 
-  
 
-  
+
+
 
 ## 📂 Managing configurations (`registry_src/`)
 
-  
+
 
 To add a new game profile or edit an existing configuration layout, do **not** modify `game_registry.json` directly. Pull Requests attempting to modify the root database directly are automatically blocked and closed by automated repository workflows.
 
-  
+
 
 Instead, create or update individual configuration profiles inside the `registry_src/` directory.
 
-  
+
 
 ### Configuration Rules
 
@@ -57,13 +57,13 @@ Instead, create or update individual configuration profiles inside the `registry
 
 *  **Path Tokens:** Use `{install_dir}` to dynamically represent the game's folder or `{install_src}` to represent its parent folder.
 
-  
+
 
 ### Example JSON Template
 
 Create your file inside `registry_src/your_game_id.json`:
 
-  
+
 
 ```json
 
@@ -97,13 +97,13 @@ While **RegVapor** handles execution configurations, data structures, and enviro
 If a game crashes, throws a black screen, or hangs during intro videos (or videos look weird, like in Chain) and transitions:
 
 1.  Download the **K-Lite Codec Pack Full** from the [Official Website](https://codecguide.com/download_k-lite_codec_pack_full.htm).
-    
+
 2.  Complete the standard installation, then open the **Codec Tweak Tool** bundled with the package.
-   
+
 3.  Locate and select the **Preferred decoders** settings panel.
-    
+
 4.  Manually configure the options for **MPEG-2, MPEG-1, DVSD, and MJPEG** to use **LAV filters** instead of Microsoft system handlers.
-    
+
 5.  Apply the changes for **both 32-bit and 64-bit** execution layouts.
 
 ### Third-Party Components

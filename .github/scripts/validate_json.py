@@ -2,6 +2,7 @@ import sys
 import json
 from pathlib import Path
 
+
 def validate_profile_structure(profile: dict, file_name: str) -> bool:
     allowed_types = {"REG_SZ", "REG_BINARY", "REG_DWORD"}
     errors_found = False
@@ -22,32 +23,41 @@ def validate_profile_structure(profile: dict, file_name: str) -> bool:
 
     for value_name, entry in reg_data.items():
         if not isinstance(entry, list) or len(entry) != 2:
-            print(f"  └── ❌ Value '{value_name}' must be an array matching [\"TYPE\", \"VALUE\"].")
+            print(
+                f'  └── ❌ Value \'{value_name}\' must be an array matching ["TYPE", "VALUE"].'
+            )
             errors_found = True
             continue
 
         reg_type, _ = entry
         if reg_type not in allowed_types:
-            print(f"  └── ❌ Value '{value_name}' has an invalid registry type '{reg_type}'. Must be one of {allowed_types}.")
+            print(
+                f"  └── ❌ Value '{value_name}' has an invalid registry type '{reg_type}'. Must be one of {allowed_types}."
+            )
             errors_found = True
 
     # NEW: Validate optional backup_files key structure
     if "backup_files" in profile:
         if not isinstance(profile["backup_files"], list):
-            print("  └── ❌ 'backup_files' must be a JSON array [\"file1.dat\", \"file2.txt\"]")
+            print(
+                '  └── ❌ \'backup_files\' must be a JSON array ["file1.dat", "file2.txt"]'
+            )
             errors_found = True
         else:
             for item in profile["backup_files"]:
                 if not isinstance(item, str):
-                    print(f"  └── ❌ 'backup_files' items must be strings. Found type: {type(item).__name__}")
+                    print(
+                        f"  └── ❌ 'backup_files' items must be strings. Found type: {type(item).__name__}"
+                    )
                     errors_found = True
 
     return not errors_found
 
+
 def main():
     source_dir = Path("registry_src")
     print("=== Starting RegVapor Source Files Schema Validation ===")
-    
+
     if not source_dir.exists() or not source_dir.is_dir():
         print(f"❌ Error: Source directory '{source_dir}' does not exist.")
         sys.exit(1)
@@ -76,20 +86,23 @@ def main():
         for game_id, profile in content.items():
             print(f"  Checking game profile definition: [{game_id}]")
             if not isinstance(profile, dict):
-                print(f"    └── ❌ Profile value for '{game_id}' must be an object structure.")
+                print(
+                    f"    └── ❌ Profile value for '{game_id}' must be an object structure."
+                )
                 total_errors += 1
                 continue
-                
+
             if not validate_profile_structure(profile, file_path.name):
                 total_errors += 1
 
-    print(f"\n=======================================================")
+    print("\n=======================================================")
     if total_errors > 0:
         print(f"❌ Validation Failed! Found {total_errors} structural error(s).")
         sys.exit(1)
-        
+
     print("✅ All source profiles validated cleanly!")
     sys.exit(0)
+
 
 if __name__ == "__main__":
     main()

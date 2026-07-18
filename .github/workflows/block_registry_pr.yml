@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'game_registry.json'
+      - "game_registry.json"
 
 permissions:
   pull-requests: write
@@ -14,30 +14,30 @@ jobs:
   block_pr:
     runs-on: ubuntu-latest
     steps:
-    - name: Close Pull Request with Comment
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const repo = context.repo;
-          const prNumber = context.issue.number;
-          
-          // 1. Post an educational comment explaining the rules
-          await github.rest.issues.createComment({
-            owner: repo.owner,
-            repo: repo.repo,
-            issue_number: prNumber,
-            body: `⚠️ **Pull Request Blocked** ⚠️\n\nHi @${context.actor}, please do not modify \`game_registry.json\` directly.\n\nThis file is automatically built from the source configurations. If you want to add or change a game layout, please make your edits inside the \`registry_src/\` folder instead!`
-          });
-          
-          // 2. Automatically close the PR
-          await github.rest.pulls.update({
-            owner: repo.owner,
-            repo: repo.repo,
-            pull_number: prNumber,
-            state: 'closed'
-          });
+      - name: Close Pull Request with Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const repo = context.repo;
+            const prNumber = context.issue.number;
 
-    - name: Force Fail Step
-      run: |
-        echo "Error: Manual modifications to game_registry.json are strictly prohibited."
-        exit 1
+            // 1. Post an educational comment explaining the rules
+            await github.rest.issues.createComment({
+              owner: repo.owner,
+              repo: repo.repo,
+              issue_number: prNumber,
+              body: `⚠️ **Pull Request Blocked** ⚠️\n\nHi @${context.actor}, please do not modify \`game_registry.json\` directly.\n\nThis file is automatically built from the source configurations. If you want to add or change a game layout, please make your edits inside the \`registry_src/\` folder instead!`
+            });
+
+            // 2. Automatically close the PR
+            await github.rest.pulls.update({
+              owner: repo.owner,
+              repo: repo.repo,
+              pull_number: prNumber,
+              state: 'closed'
+            });
+
+      - name: Force Fail Step
+        run: |
+          echo "Error: Manual modifications to game_registry.json are strictly prohibited."
+          exit 1

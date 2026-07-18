@@ -5,8 +5,8 @@ on:
     branches:
       - main
     paths:
-      - 'registry_src/**'
-      - 'launcher/config.py'
+      - "registry_src/**"
+      - "launcher/config.py"
   workflow_dispatch:
 
 permissions:
@@ -16,32 +16,32 @@ jobs:
   merge-json:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Generate Metadata
-      run: |
-        VERSION=$(grep -oP '__version__\s*=\s*"\K[^"]+' launcher/config.py)
-        echo "Detected version: $VERSION"
-        mkdir -p registry_src
-        echo "{\"__metadata__\": {\"latest_launcher_version\": \"$VERSION\"}}" > registry_src/00_metadata.json
+      - name: Generate Metadata
+        run: |
+          VERSION=$(grep -oP '__version__\s*=\s*"\K[^"]+' launcher/config.py)
+          echo "Detected version: $VERSION"
+          mkdir -p registry_src
+          echo "{\"__metadata__\": {\"latest_launcher_version\": \"$VERSION\"}}" > registry_src/00_metadata.json
 
-    - name: Merge JSON files
-      run: |
-        python -c '
-        import os, json
-        master_dict = {}
-        for filename in sorted(os.listdir("registry_src")):
-            if filename.endswith(".json"):
-                with open(os.path.join("registry_src", filename), "r", encoding="utf-8") as f:
-                    master_dict.update(json.load(f))
-        with open("game_registry.json", "w", encoding="utf-8") as out:
-            json.dump(master_dict, out, indent=2, ensure_ascii=False)
-        '
+      - name: Merge JSON files
+        run: |
+          python -c '
+          import os, json
+          master_dict = {}
+          for filename in sorted(os.listdir("registry_src")):
+              if filename.endswith(".json"):
+                  with open(os.path.join("registry_src", filename), "r", encoding="utf-8") as f:
+                      master_dict.update(json.load(f))
+          with open("game_registry.json", "w", encoding="utf-8") as out:
+              json.dump(master_dict, out, indent=2, ensure_ascii=False)
+          '
 
-    - name: Commit and Push
-      run: |
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git add game_registry.json registry_src/00_metadata.json
-        git commit -m "Update: Compiled registry with v$(grep -oP '__version__\s*=\s*"\K[^"]+' launcher/config.py)" || echo "No changes"
-        git push
+      - name: Commit and Push
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add game_registry.json registry_src/00_metadata.json
+          git commit -m "Update: Compiled registry with v$(grep -oP '__version__\s*=\s*"\K[^"]+' launcher/config.py)" || echo "No changes"
+          git push

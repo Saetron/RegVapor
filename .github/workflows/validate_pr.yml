@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'registry_src/**'
+      - "registry_src/**"
 
 permissions:
   contents: read
@@ -15,14 +15,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.13'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
 
-    - name: Run Source Validator Script
-      run: |
-        python .github/scripts/validate_json.py
+      - name: Run Source Validator Script
+        run: |
+          python .github/scripts/validate_json.py

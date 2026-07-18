@@ -8,6 +8,7 @@ import file_handler
 import gui
 import subprocess
 
+
 def main():
     os.makedirs(str(config.backup_dir), exist_ok=True)
     log("RegVapor Version {}", config.__version__)
@@ -22,7 +23,9 @@ def main():
 
     if not game_id or game_id == "ENTER_GAME_ID_HERE":
         if not master_config:
-            gui.show_error_message("Could not fetch configuration database (online or offline fallback), and no local configuration file exists.")
+            gui.show_error_message(
+                "Could not fetch configuration database (online or offline fallback), and no local configuration file exists."
+            )
             return
 
         available_ids = sorted([k for k in master_config.keys() if k != "__metadata__"])
@@ -41,10 +44,12 @@ def main():
 
     entry = master_config[game_id]
     key_path = entry.get("key_path", "")
-    
+
     game_exe_setting = entry["game_exe"]
-    exe_candidates = [game_exe_setting] if isinstance(game_exe_setting, str) else game_exe_setting
-    
+    exe_candidates = (
+        [game_exe_setting] if isinstance(game_exe_setting, str) else game_exe_setting
+    )
+
     game_exe = None
     for candidate in exe_candidates:
         target_path = config.base_dir / candidate
@@ -53,7 +58,11 @@ def main():
             break
 
     if not game_exe:
-        log("Executable missing. Looked for: {} inside {}", exe_candidates, config.base_dir)
+        log(
+            "Executable missing. Looked for: {} inside {}",
+            exe_candidates,
+            config.base_dir,
+        )
         return
 
     font_loaded = False
@@ -66,7 +75,9 @@ def main():
     active_backups = []
     backup_files_list = entry.get("backup_files", [])
     if backup_files_list and isinstance(backup_files_list, list):
-        active_backups = file_handler.backup(config.base_dir, config.regvapor_dir, backup_files_list)
+        active_backups = file_handler.backup(
+            config.base_dir, config.regvapor_dir, backup_files_list
+        )
 
     try:
         registry.set_key(config.base_dir, config.backup_dir, entry)
@@ -82,12 +93,13 @@ def main():
             registry.backup(key_path, config.backup_dir)
         except Exception as e:
             log("Scrub and backup failure: {}", e)
-        
+
         if active_backups:
             file_handler.restore(active_backups)
-        
+
         if font_loaded and font_path:
             font.unload(font_path, config.regvapor_dir)
+
 
 if __name__ == "__main__":
     main()

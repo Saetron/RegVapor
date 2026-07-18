@@ -6,37 +6,49 @@ import urllib.request
 import gui
 from utils import log_message as log
 
+
 def check_for_updates(master_config: dict):
-    remote_version = master_config.get("__metadata__", {}).get("latest_launcher_version")
+    remote_version = master_config.get("__metadata__", {}).get(
+        "latest_launcher_version"
+    )
     if not remote_version:
         log("Update check failed: No remote version found.")
         return
 
     def parse_ver(v_str):
-        clean_v = ''.join(c for c in v_str if c.isdigit() or c == '.')
+        clean_v = "".join(c for c in v_str if c.isdigit() or c == ".")
         return [int(x) for x in clean_v.split(".")]
 
     try:
         remote_parsed = parse_ver(remote_version)
         local_parsed = parse_ver(config.__version__)
-        log("Checking updates: Remote v{}, Local v{}", remote_version, config.__version__)
+        log(
+            "Checking updates: Remote v{}, Local v{}",
+            remote_version,
+            config.__version__,
+        )
         if remote_parsed <= local_parsed:
             return
     except Exception as e:
         log("Update check parsing error: {}", e)
         return
 
-    msg = (f"A new version of RegVapor is available (v{remote_version}).\n\n"
-           "Would you like to update now? (This will download the latest version and restart the launcher.)")
-    
+    msg = (
+        f"A new version of RegVapor is available (v{remote_version}).\n\n"
+        "Would you like to update now? (This will download the latest version and restart the launcher.)"
+    )
+
     ans = gui.show_info_message(msg, title="RegVapor Launcher - Update Available")
-    
+
     if ans:
         target_exe = sys.argv[0]
         updater_exe = config.base_dir / "RegVapor_updater.exe"
         urllib.request.urlretrieve(config.GITHUB_UPDATER_URL, updater_exe)
-        subprocess.Popen([str(updater_exe), target_exe, str(config.base_dir)], shell=False)
+        subprocess.Popen(
+            [str(updater_exe), target_exe, str(config.base_dir)], shell=False
+        )
         sys.exit()
+
 
 def read_saved_game_id() -> str | None:
     """Checks if a game_id.txt exists and returns its contents if valid."""
@@ -47,14 +59,15 @@ def read_saved_game_id() -> str | None:
             return current_id
     return None
 
+
 def fetch_and_cache_config(target_game_id: str | None, master_config: dict) -> dict:
     """
-    Attempts to fetch the database from GitHub. 
+    Attempts to fetch the database from GitHub.
     - If target_game_id is known, caches ONLY that game's data to RegVapor_game.json.
     - If target_game_id is unknown (first run), returns the full database so the user can choose.
     - If offline, falls back to the local RegVapor_game.json.
     """
-   
+
     # Trying to read the game_registry from GitHub first
     if target_game_id:
         if target_game_id in master_config:
@@ -66,7 +79,7 @@ def fetch_and_cache_config(target_game_id: str | None, master_config: dict) -> d
             return master_config
     else:
         return master_config
-        
+
     # Offline fallback logic
     if config.local_json_path.exists():
         try:
@@ -77,6 +90,7 @@ def fetch_and_cache_config(target_game_id: str | None, master_config: dict) -> d
         except Exception as e:
             log("Failed to read local fallback {}: {}", config.LOCAL_JSON_NAME, e)
     return {}
+
 
 def get_master_config() -> dict:
     try:

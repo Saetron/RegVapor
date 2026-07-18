@@ -8,6 +8,7 @@ import shutil
 import config
 from utils import log_message as log
 
+
 def run_update():
     updater_name = "RegVapor_updater.exe"
     if len(sys.argv) < 3:
@@ -48,6 +49,8 @@ def run_update():
 
         log("Launching cleanup script to delete updater: {}", batch_script)
         subprocess.Popen([str(batch_script)], shell=True)
+
+
 if __name__ == "__main__":
     log("RegVapor Updater Version {}", config.__version__)
     run_update()

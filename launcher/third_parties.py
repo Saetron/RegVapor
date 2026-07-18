@@ -1,8 +1,8 @@
 import ctypes
 import urllib.request
 import json
-import ctypes
 from utils import log_message as log
+import os
 
 # ==============================================================================
 # BASE CONFIGURATION

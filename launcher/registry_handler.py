@@ -1,6 +1,7 @@
 import config
 import winreg
 
+
 def delete_key(root, subkey):
     """Recursively purges a registry branch completely from Windows."""
     try:
@@ -16,15 +17,18 @@ def delete_key(root, subkey):
     winreg.CloseKey(key)
     winreg.DeleteKey(root, subkey)
 
+
 def set_key(game_dir: config.Path, backup_dir: config.Path, entry: dict):
     """Injects saved local states or default layouts, matching active path states."""
     key_path = entry["key_path"]
     registry_data = entry["registry_data"]
-    
+
     if not key_path:
         return
 
-    key = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE)
+    key = winreg.CreateKeyEx(
+        winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE
+    )
 
     for value_name, (type_str, default_val) in registry_data.items():
         if type_str == "REG_BINARY":
@@ -37,7 +41,11 @@ def set_key(game_dir: config.Path, backup_dir: config.Path, entry: dict):
             data_type = winreg.REG_SZ
             fallback_bytes = str(default_val)
 
-        is_path_key = "{install_dir}" in str(default_val) or "{install_src}" in str(default_val) or str(default_val) == ".\\"
+        is_path_key = (
+            "{install_dir}" in str(default_val)
+            or "{install_src}" in str(default_val)
+            or str(default_val) == ".\\"
+        )
 
         backup_file = backup_dir / f"{value_name}.regdata"
         if backup_file.exists() and not is_path_key:
@@ -45,22 +53,29 @@ def set_key(game_dir: config.Path, backup_dir: config.Path, entry: dict):
                 if data_type == winreg.REG_BINARY:
                     prepared_value = backup_file.read_bytes()
                 elif data_type == winreg.REG_DWORD:
-                    prepared_value = int(backup_file.read_text(encoding="utf-8").strip())
+                    prepared_value = int(
+                        backup_file.read_text(encoding="utf-8").strip()
+                    )
                 else:
                     prepared_value = backup_file.read_text(encoding="utf-8")
             except Exception:
                 prepared_value = fallback_bytes
         else:
             if "{install_dir}" in str(default_val):
-                prepared_value = str(default_val).replace("{install_dir}", str(game_dir))
+                prepared_value = str(default_val).replace(
+                    "{install_dir}", str(game_dir)
+                )
             elif "{install_src}" in str(default_val):
-                prepared_value = str(default_val).replace("{install_src}", str(game_dir.parent))
+                prepared_value = str(default_val).replace(
+                    "{install_src}", str(game_dir.parent)
+                )
             else:
                 prepared_value = fallback_bytes
 
         winreg.SetValueEx(key, value_name, 0, data_type, prepared_value)
 
     winreg.CloseKey(key)
+
 
 def backup(key_path: str, backup_dir: config.Path):
     """Harvests user adjustments into files and deletes the Windows keys completely."""
@@ -77,14 +92,14 @@ def backup(key_path: str, backup_dir: config.Path):
         while True:
             value_name, value_data, data_type = winreg.EnumValue(key, index)
             backup_file = backup_dir / f"{value_name}.regdata"
-            
+
             if data_type == winreg.REG_BINARY:
                 backup_file.write_bytes(value_data)
             elif data_type == winreg.REG_DWORD:
                 backup_file.write_text(str(value_data), encoding="utf-8")
             else:
                 backup_file.write_text(str(value_data), encoding="utf-8")
-                
+
             index += 1
     except OSError:
         pass

@@ -3,6 +3,7 @@ from utils import log_message as log
 import json
 import time
 
+
 def backup(base_dir: config.Path, regvapor_dir: config.Path, files_list: list) -> list:
     """Renames specific game files to .bak before launching. Returns a list of renamed pairs."""
     processed_backups = []
@@ -20,6 +21,7 @@ def backup(base_dir: config.Path, regvapor_dir: config.Path, files_list: list) -
                 log("Failed to backup file {}: {}", rel_path, e)
     return processed_backups
 
+
 def restore(backups: list):
     """Restores the original filenames from their .bak counterparts on exit."""
     for original_file, bak_file in backups:
@@ -32,6 +34,7 @@ def restore(backups: list):
             except Exception as e:
                 log("Failed to restore file {}: {}", bak_file.name, e)
 
+
 def game_id_write(game_id: str, master_config: dict):
     with open(config.id_file, "w", encoding="utf-8") as f:
         f.write(game_id)
@@ -41,7 +44,11 @@ def game_id_write(game_id: str, master_config: dict):
             with open(config.local_json_path, "w", encoding="utf-8") as f:
                 json.dump(filtered_data, f, indent=4)
             master_config = filtered_data
-            log("Cached configuration for '{}' locally to {}.", game_id, config.local_json_path)
+            log(
+                "Cached configuration for '{}' locally to {}.",
+                game_id,
+                config.local_json_path,
+            )
         except Exception as e:
             log("Failed to write local backup cache: {}", e)
     time.sleep(0.2)

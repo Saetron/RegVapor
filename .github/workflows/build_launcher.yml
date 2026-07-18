@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'launcher/**'
+      - "launcher/**"
   workflow_dispatch:
 
 permissions:
@@ -16,49 +16,49 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.13'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
 
-    - name: Install Dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pyinstaller
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
 
-    - name: Parse Version String from Script
-      id: get_version
-      shell: bash
-      run: |
-        # Pulls the __version__ line out of the Python script dynamically
-        VERSION=$(grep "__version__" launcher/config.py | head -n 1 | cut -d'"' -f2)
-        echo "LAUNCHER_VERSION=$VERSION" >> $GITHUB_ENV
-        echo "Extracted version: $VERSION"
+      - name: Parse Version String from Script
+        id: get_version
+        shell: bash
+        run: |
+          # Pulls the __version__ line out of the Python script dynamically
+          VERSION=$(grep "__version__" launcher/config.py | head -n 1 | cut -d'"' -f2)
+          echo "LAUNCHER_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Extracted version: $VERSION"
 
-    - name: Compile to Executable with PyInstaller
-      run: |
-        pyinstaller --noconsole --onefile --name=RegVapor launcher/RegVapor.py
+      - name: Compile to Executable with PyInstaller
+        run: |
+          pyinstaller --noconsole --onefile --name=RegVapor launcher/RegVapor.py
 
-    - name: Compile Updater Executable
-      run: |
-        pyinstaller --noconsole --onefile --name=RegVapor_updater launcher/updater.py
+      - name: Compile Updater Executable
+        run: |
+          pyinstaller --noconsole --onefile --name=RegVapor_updater launcher/updater.py
 
-    - name: Create Tag and GitHub Release
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: v${{ env.LAUNCHER_VERSION }}
-        name: RegVapor Launcher v${{ env.LAUNCHER_VERSION }}
-        body: |
-          Automated compilation release of the sandbox launcher binary.
-          
-          Changes detected in the `launcher/` path structure have been built.
-        draft: false
-        prerelease: false
-        files: |
-          dist/RegVapor.exe
-          dist/RegVapor_updater.exe
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Tag and GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.LAUNCHER_VERSION }}
+          name: RegVapor Launcher v${{ env.LAUNCHER_VERSION }}
+          body: |
+            Automated compilation release of the sandbox launcher binary.
+
+            Changes detected in the `launcher/` path structure have been built.
+          draft: false
+          prerelease: false
+          files: |
+            dist/RegVapor.exe
+            dist/RegVapor_updater.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
