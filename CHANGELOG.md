@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Dependabot configuration (`.github/dependabot.yml`) for tracking GitHub Actions workflow updates.
 
 ### Changed
+- Bumped `actions/checkout` from v4 to v7 across CI workflows.
+- Bumped `actions/setup-python` from v5 to v7 across CI workflows.
+- Bumped `actions/github-script` from v7 to v9 in `block_registry_pr.yml`.
+- Bumped `softprops/action-gh-release` from v2 to v3 in `build_launcher.yml`.
 - Converted release creation GitHub Actions workflow (`build_launcher.yml`) to run exclusively on manual trigger (`workflow_dispatch`).
 
 ### Removed
