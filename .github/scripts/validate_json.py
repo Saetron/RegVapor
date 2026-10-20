@@ -84,6 +84,8 @@ def main():
             continue
 
         for game_id, profile in content.items():
+            if game_id == "__metadata__":
+                continue
             print(f"  Checking game profile definition: [{game_id}]")
             if not isinstance(profile, dict):
                 print(

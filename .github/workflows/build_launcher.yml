@@ -1,11 +1,6 @@
 name: Build and Release RegVapor Launcher
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "launcher/**"
   workflow_dispatch:
 
 permissions:
