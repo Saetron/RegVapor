@@ -24,12 +24,13 @@ RegVapor/
 ├── .github/
 │   ├── scripts/
 │   │   └── validate_json.py      # CI schema validation for registry_src/*.json
-│   └── workflows/
-│       ├── block_registry_pr.yml # Blocks direct edits to game_registry.json
-│       ├── build_launcher.yml    # PyInstaller compilation workflow (manual trigger)
-│       ├── merge_registry.yml    # Compiles registry_src/*.json into game_registry.json
-│       ├── update-locale-emulator.yml # Checks and updates Locale Emulator DLLs
-│       └── validate_pr.yml       # Validates registry_src changes on pull requests
+│   ├── workflows/
+│   │   ├── block_registry_pr.yml # Blocks direct edits to game_registry.json
+│   │   ├── build_launcher.yml    # PyInstaller compilation workflow (manual trigger)
+│   │   ├── merge_registry.yml    # Compiles registry_src/*.json into game_registry.json
+│   │   ├── update-locale-emulator.yml # Checks and updates Locale Emulator DLLs
+│   │   └── validate_pr.yml       # Validates registry_src changes on pull requests
+│   └── dependabot.yml            # Automated dependency updates for GitHub Actions
 ├── launcher/
 │   ├── RegVapor.py               # Main launcher orchestrator entrypoint
 │   ├── config.py                 # Core configuration, version, constants, path definitions

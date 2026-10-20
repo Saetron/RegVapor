@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added Dependabot configuration (`.github/dependabot.yml`) for tracking GitHub Actions workflow updates.
+
 ### Changed
 - Converted release creation GitHub Actions workflow (`build_launcher.yml`) to run exclusively on manual trigger (`workflow_dispatch`).
 
