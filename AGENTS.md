@@ -47,6 +47,8 @@ RegVapor/
 │   └── <game_id>.json            # Individual game configuration profiles
 ├── third_party/
 │   └── LocaleEmulator/           # Locale Emulator DLLs and license
+├── AGENTS.md                     # Agent development guidelines and project rules
+├── CHANGELOG.md                  # Project version and change history
 ├── game_registry.json            # COMPILED master registry file (DO NOT EDIT DIRECTLY)
 ├── LICENSE                       # EUPL-1.2 License
 └── README.md                     # User-facing documentation
@@ -60,6 +62,10 @@ RegVapor/
 - `game_registry.json` is a **compiled artifact** generated automatically by `.github/workflows/merge_registry.yml` from `registry_src/*.json`.
 - Pull Requests modifying `game_registry.json` directly are automatically blocked and closed by `block_registry_pr.yml`.
 - **Always** make additions or changes to game configurations by adding or modifying individual JSON files inside `registry_src/`.
+
+### 🚨 Always Keep `CHANGELOG.md` Updated
+- Whenever you make changes (adding features, fixing bugs, updating CI/CD workflows, or refactoring code), you **must** document your changes in `CHANGELOG.md` under the `[Unreleased]` section.
+- Adhere strictly to the [Keep a Changelog](https://keepachangelog.com/) standard using the appropriate categories (`Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, or `Security`).
 
 ### 🚨 Run Schema Validation on Registry Profiles
 Whenever modifying or adding a game profile in `registry_src/`, always run the validator script:

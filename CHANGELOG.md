@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `AGENTS.md` providing development guidelines and mandatory practices for AI coding agents.
 - Added Dependabot configuration (`.github/dependabot.yml`) for tracking GitHub Actions workflow updates.
 
 ### Changed
