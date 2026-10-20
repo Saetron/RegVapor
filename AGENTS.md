@@ -13,7 +13,6 @@ Welcome to **RegVapor**. This document provides essential context, architecture 
 2. **Dynamic Path Tokens**: Expands `{install_dir}` (the game directory) and `{install_src}` (parent directory) inside registry string values at runtime.
 3. **Session-Injected Fonts**: Temporarily loads custom fonts (e.g. `msgothic.ttc`) into process/system memory using Windows GDI without installing them globally.
 4. **Transient File Backup (`.bak`)**: Temporarily renames conflicting files (such as problematic intro videos or codec crash triggers) to `.bak` before launch, and restores them when the game exits.
-5. **Third-Party Integrations**: Integrates with [Locale-Emulator](https://github.com/xupefei/Locale-Emulator) and provides helper workflows for LAV Filters.
 
 ---
 
@@ -28,7 +27,6 @@ RegVapor/
 │   │   ├── block_registry_pr.yml # Blocks direct edits to game_registry.json
 │   │   ├── build_launcher.yml    # PyInstaller compilation workflow (manual trigger)
 │   │   ├── merge_registry.yml    # Compiles registry_src/*.json into game_registry.json
-│   │   ├── update-locale-emulator.yml # Checks and updates Locale Emulator DLLs
 │   │   └── validate_pr.yml       # Validates registry_src changes on pull requests
 │   └── dependabot.yml            # Automated dependency updates for GitHub Actions
 ├── launcher/
@@ -36,17 +34,14 @@ RegVapor/
 │   ├── config.py                 # Core configuration, version, constants, path definitions
 │   ├── file_handler.py           # Backup/restore logic for transient (.bak) files
 │   ├── font_loader.py            # Windows GDI temporary font loader
-│   ├── gui.py                    # Tkinter GUI (game selection dropdown, error modals)
+│   ├── gui.py                    # Native Win32 GUI via ctypes (game selection dropdown, modals)
 │   ├── registry_handler.py       # Windows Registry injection and backup routines
-│   ├── third_parties.py          # Third-party component utilities (LAV filters, etc.)
 │   ├── updater.py                # Standalone updater executable
 │   ├── utils.py                  # Structured logging utility
 │   └── vapor_utils.py            # Remote registry fetching, caching, offline fallback
 ├── registry_src/                 # Source directory for game registry profiles
 │   ├── 00_metadata.json          # Generated version metadata (do not edit manually)
 │   └── <game_id>.json            # Individual game configuration profiles
-├── third_party/
-│   └── LocaleEmulator/           # Locale Emulator DLLs and license
 ├── AGENTS.md                     # Agent development guidelines and project rules
 ├── CHANGELOG.md                  # Project version and change history
 ├── game_registry.json            # COMPILED master registry file (DO NOT EDIT DIRECTLY)

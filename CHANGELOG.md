@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - Removed pre-commit configuration (`.pre-commit-config.yaml`) and CI check workflow (`.github/workflows/pre-commit.yml`).
+- Removed unused third-party components (`third_party/LocaleEmulator/`, `launcher/third_parties.py`, and `.github/workflows/update-locale-emulator.yml`).
 
 ---
 
