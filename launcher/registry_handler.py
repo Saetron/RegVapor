@@ -1,109 +1,101 @@
-import config
+from pathlib import Path
 import winreg
 
 
-def delete_key(root, subkey):
+def delete_key(root: int, subkey: str) -> None:
     """Recursively purges a registry branch completely from Windows."""
     try:
-        key = winreg.OpenKey(root, subkey, 0, winreg.KEY_ALL_ACCESS)
+        with winreg.OpenKey(root, subkey, 0, winreg.KEY_ALL_ACCESS) as key:
+            while True:
+                try:
+                    child = winreg.EnumKey(key, 0)
+                    delete_key(key, child)
+                except OSError:
+                    break
     except FileNotFoundError:
         return
-    try:
-        while True:
-            child = winreg.EnumKey(key, 0)
-            delete_key(key, child)
-    except OSError:
-        pass
-    winreg.CloseKey(key)
     winreg.DeleteKey(root, subkey)
 
 
-def set_key(game_dir: config.Path, backup_dir: config.Path, entry: dict):
+def set_key(game_dir: Path, backup_dir: Path, entry: dict) -> None:
     """Injects saved local states or default layouts, matching active path states."""
-    key_path = entry["key_path"]
-    registry_data = entry["registry_data"]
+    key_path = entry.get("key_path", "")
+    registry_data = entry.get("registry_data", {})
 
-    if not key_path:
+    if not key_path or not registry_data:
         return
 
-    key = winreg.CreateKeyEx(
+    with winreg.CreateKeyEx(
         winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE
-    )
+    ) as key:
+        for value_name, (type_str, default_val) in registry_data.items():
+            default_str = str(default_val)
 
-    for value_name, (type_str, default_val) in registry_data.items():
-        if type_str == "REG_BINARY":
-            data_type = winreg.REG_BINARY
-            fallback_bytes = bytes.fromhex(str(default_val).replace(" ", ""))
-        elif type_str == "REG_DWORD":
-            data_type = winreg.REG_DWORD
-            fallback_bytes = int(str(default_val).strip())
-        else:
-            data_type = winreg.REG_SZ
-            fallback_bytes = str(default_val)
-
-        is_path_key = (
-            "{install_dir}" in str(default_val)
-            or "{install_src}" in str(default_val)
-            or str(default_val) == ".\\"
-        )
-
-        backup_file = backup_dir / f"{value_name}.regdata"
-        if backup_file.exists() and not is_path_key:
-            try:
-                if data_type == winreg.REG_BINARY:
-                    prepared_value = backup_file.read_bytes()
-                elif data_type == winreg.REG_DWORD:
-                    prepared_value = int(
-                        backup_file.read_text(encoding="utf-8").strip()
-                    )
-                else:
-                    prepared_value = backup_file.read_text(encoding="utf-8")
-            except Exception:
-                prepared_value = fallback_bytes
-        else:
-            if "{install_dir}" in str(default_val):
-                prepared_value = str(default_val).replace(
-                    "{install_dir}", str(game_dir)
+            if type_str == "REG_BINARY":
+                data_type = winreg.REG_BINARY
+                fallback_val: bytes | int | str = bytes.fromhex(
+                    default_str.replace(" ", "")
                 )
-            elif "{install_src}" in str(default_val):
-                prepared_value = str(default_val).replace(
-                    "{install_src}", str(game_dir.parent)
-                )
+            elif type_str == "REG_DWORD":
+                data_type = winreg.REG_DWORD
+                fallback_val = int(default_str.strip())
             else:
-                prepared_value = fallback_bytes
+                data_type = winreg.REG_SZ
+                fallback_val = default_str
 
-        winreg.SetValueEx(key, value_name, 0, data_type, prepared_value)
+            is_path_key = (
+                "{install_dir}" in default_str
+                or "{install_src}" in default_str
+                or default_str == ".\\"
+            )
 
-    winreg.CloseKey(key)
+            backup_file = backup_dir / f"{value_name}.regdata"
+            if backup_file.exists() and not is_path_key:
+                try:
+                    if data_type == winreg.REG_BINARY:
+                        prepared_value: bytes | int | str = backup_file.read_bytes()
+                    elif data_type == winreg.REG_DWORD:
+                        prepared_value = int(
+                            backup_file.read_text(encoding="utf-8").strip()
+                        )
+                    else:
+                        prepared_value = backup_file.read_text(encoding="utf-8")
+                except Exception:
+                    prepared_value = fallback_val
+            elif "{install_dir}" in default_str or "{install_src}" in default_str:
+                prepared_value = default_str.replace(
+                    "{install_dir}", str(game_dir)
+                ).replace("{install_src}", str(game_dir.parent))
+            else:
+                prepared_value = fallback_val
+
+            winreg.SetValueEx(key, value_name, 0, data_type, prepared_value)
 
 
-def backup(key_path: str, backup_dir: config.Path):
+def backup(key_path: str, backup_dir: Path) -> None:
     """Harvests user adjustments into files and deletes the Windows keys completely."""
     if not key_path:
         return
 
     try:
-        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_READ)
+        with winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_READ
+        ) as key:
+            index = 0
+            while True:
+                try:
+                    value_name, value_data, data_type = winreg.EnumValue(key, index)
+                except OSError:
+                    break
+
+                backup_file = backup_dir / f"{value_name}.regdata"
+                if data_type == winreg.REG_BINARY:
+                    backup_file.write_bytes(value_data)
+                else:
+                    backup_file.write_text(str(value_data), encoding="utf-8")
+
+                index += 1
     except FileNotFoundError:
         return
-
-    try:
-        index = 0
-        while True:
-            value_name, value_data, data_type = winreg.EnumValue(key, index)
-            backup_file = backup_dir / f"{value_name}.regdata"
-
-            if data_type == winreg.REG_BINARY:
-                backup_file.write_bytes(value_data)
-            elif data_type == winreg.REG_DWORD:
-                backup_file.write_text(str(value_data), encoding="utf-8")
-            else:
-                backup_file.write_text(str(value_data), encoding="utf-8")
-
-            index += 1
-    except OSError:
-        pass
-    finally:
-        winreg.CloseKey(key)
 
     delete_key(winreg.HKEY_CURRENT_USER, key_path)

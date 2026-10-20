@@ -1,19 +1,20 @@
 from datetime import datetime
-import os
 import config
 
 
-def log_message(message: str, *args, max_lines=100):
+def log_message(message: str, *args, max_lines: int = 100) -> None:
     formatted_message = message.format(*args) if args else message
     logfile_path = config.regvapor_dir / config.LOGFILE
+    logfile_path.parent.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    new_line = f"[{timestamp}] {formatted_message}\n"
 
-    with open(logfile_path, "a", encoding="utf-8") as f:
-        f.write(f"[{timestamp}] {formatted_message}\n")
+    lines: list[str] = []
+    if logfile_path.exists():
+        try:
+            lines = logfile_path.read_text(encoding="utf-8").splitlines(keepends=True)
+        except OSError:
+            lines = []
 
-    if os.path.exists(logfile_path):
-        with open(logfile_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-        if len(lines) > max_lines:
-            with open(logfile_path, "w", encoding="utf-8") as f:
-                f.writelines(lines[-max_lines:])
+    lines.append(new_line)
+    logfile_path.write_text("".join(lines[-max_lines:]), encoding="utf-8")

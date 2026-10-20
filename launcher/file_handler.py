@@ -1,12 +1,12 @@
+import json
+from pathlib import Path
 import config
 from utils import log_message as log
-import json
-import time
 
 
-def backup(base_dir: config.Path, regvapor_dir: config.Path, files_list: list) -> list:
+def backup(base_dir: Path, files_list: list[str]) -> list[tuple[Path, Path]]:
     """Renames specific game files to .bak before launching. Returns a list of renamed pairs."""
-    processed_backups = []
+    processed_backups: list[tuple[Path, Path]] = []
     for rel_path in files_list:
         target_file = (base_dir / rel_path).resolve()
         if target_file.exists() and target_file.is_file():
@@ -22,7 +22,7 @@ def backup(base_dir: config.Path, regvapor_dir: config.Path, files_list: list) -
     return processed_backups
 
 
-def restore(backups: list):
+def restore(backups: list[tuple[Path, Path]]) -> None:
     """Restores the original filenames from their .bak counterparts on exit."""
     for original_file, bak_file in backups:
         if bak_file.exists():
@@ -35,15 +35,13 @@ def restore(backups: list):
                 log("Failed to restore file {}: {}", bak_file.name, e)
 
 
-def game_id_write(game_id: str, master_config: dict):
-    with open(config.id_file, "w", encoding="utf-8") as f:
-        f.write(game_id)
+def game_id_write(game_id: str, master_config: dict) -> None:
+    config.id_file.write_text(game_id, encoding="utf-8")
     if game_id in master_config:
         filtered_data = {game_id: master_config[game_id]}
         try:
             with open(config.local_json_path, "w", encoding="utf-8") as f:
                 json.dump(filtered_data, f, indent=4)
-            master_config = filtered_data
             log(
                 "Cached configuration for '{}' locally to {}.",
                 game_id,
@@ -51,4 +49,3 @@ def game_id_write(game_id: str, master_config: dict):
             )
         except Exception as e:
             log("Failed to write local backup cache: {}", e)
-    time.sleep(0.2)

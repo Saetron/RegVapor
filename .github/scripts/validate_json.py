@@ -1,20 +1,34 @@
-import sys
 import json
 from pathlib import Path
+import sys
+
+ALLOWED_TYPES = {"REG_SZ", "REG_BINARY", "REG_DWORD"}
+REQUIRED_KEYS = ("game_exe", "key_path", "registry_data")
 
 
-def validate_profile_structure(profile: dict, file_name: str) -> bool:
-    allowed_types = {"REG_SZ", "REG_BINARY", "REG_DWORD"}
+def validate_profile_structure(profile: dict) -> bool:
     errors_found = False
 
-    required_keys = ["game_exe", "key_path", "registry_data"]
-    for key in required_keys:
+    for key in REQUIRED_KEYS:
         if key not in profile:
             print(f"  └── ❌ Missing required key: '{key}'")
             errors_found = True
 
     if errors_found:
         return False
+
+    if not isinstance(profile["key_path"], str):
+        print("  └── ❌ 'key_path' must be a string.")
+        errors_found = True
+
+    game_exe = profile["game_exe"]
+    if not isinstance(game_exe, str) and not (
+        isinstance(game_exe, list)
+        and game_exe
+        and all(isinstance(x, str) for x in game_exe)
+    ):
+        print("  └── ❌ 'game_exe' must be a string or a non-empty list of strings.")
+        errors_found = True
 
     reg_data = profile["registry_data"]
     if not isinstance(reg_data, dict):
@@ -30,13 +44,12 @@ def validate_profile_structure(profile: dict, file_name: str) -> bool:
             continue
 
         reg_type, _ = entry
-        if reg_type not in allowed_types:
+        if reg_type not in ALLOWED_TYPES:
             print(
-                f"  └── ❌ Value '{value_name}' has an invalid registry type '{reg_type}'. Must be one of {allowed_types}."
+                f"  └── ❌ Value '{value_name}' has an invalid registry type '{reg_type}'. Must be one of {ALLOWED_TYPES}."
             )
             errors_found = True
 
-    # NEW: Validate optional backup_files key structure
     if "backup_files" in profile:
         if not isinstance(profile["backup_files"], list):
             print(
@@ -51,18 +64,22 @@ def validate_profile_structure(profile: dict, file_name: str) -> bool:
                     )
                     errors_found = True
 
+    if "custom_font" in profile and not isinstance(profile["custom_font"], str):
+        print("  └── ❌ 'custom_font' must be a string.")
+        errors_found = True
+
     return not errors_found
 
 
-def main():
+def main() -> None:
     source_dir = Path("registry_src")
     print("=== Starting RegVapor Source Files Schema Validation ===")
 
-    if not source_dir.exists() or not source_dir.is_dir():
+    if not source_dir.is_dir():
         print(f"❌ Error: Source directory '{source_dir}' does not exist.")
         sys.exit(1)
 
-    json_files = list(source_dir.glob("*.json"))
+    json_files = sorted(source_dir.glob("*.json"))
     if not json_files:
         print(f"⚠️ Warning: No JSON files found inside '{source_dir}/'. Skipping check.")
         sys.exit(0)
@@ -94,7 +111,7 @@ def main():
                 total_errors += 1
                 continue
 
-            if not validate_profile_structure(profile, file_path.name):
+            if not validate_profile_structure(profile):
                 total_errors += 1
 
     print("\n=======================================================")

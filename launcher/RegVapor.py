@@ -1,16 +1,15 @@
-import os
+import subprocess
 import config
+import file_handler
+import font_loader as font
+import gui
+import registry_handler as registry
 from utils import log_message as log
 import vapor_utils as vapor
-import font_loader as font
-import registry_handler as registry
-import file_handler
-import gui
-import subprocess
 
 
-def main():
-    os.makedirs(str(config.backup_dir), exist_ok=True)
+def main() -> None:
+    config.backup_dir.mkdir(parents=True, exist_ok=True)
     log("RegVapor Version {}", config.__version__)
 
     game_id = vapor.read_saved_game_id()
@@ -21,20 +20,19 @@ def main():
 
     master_config = vapor.fetch_and_cache_config(game_id, master_config)
 
-    if not game_id or game_id == "ENTER_GAME_ID_HERE":
+    if not game_id:
         if not master_config:
             gui.show_error_message(
                 "Could not fetch configuration database (online or offline fallback), and no local configuration file exists."
             )
             return
 
-        available_ids = sorted([k for k in master_config.keys() if k != "__metadata__"])
+        available_ids = sorted(k for k in master_config if k != "__metadata__")
         game_id = gui.select_game_id_gui(available_ids)
 
-        if game_id:
-            file_handler.game_id_write(game_id, master_config)
-        else:
+        if not game_id:
             return
+        file_handler.game_id_write(game_id, master_config)
 
     log("RegVapor Launcher v{} initializing for ID: {}", config.__version__, game_id)
 
@@ -50,12 +48,14 @@ def main():
         [game_exe_setting] if isinstance(game_exe_setting, str) else game_exe_setting
     )
 
-    game_exe = None
-    for candidate in exe_candidates:
-        target_path = config.base_dir / candidate
-        if target_path.exists():
-            game_exe = target_path
-            break
+    game_exe = next(
+        (
+            target_path
+            for candidate in exe_candidates
+            if (target_path := config.base_dir / candidate).exists()
+        ),
+        None,
+    )
 
     if not game_exe:
         log(
@@ -75,9 +75,7 @@ def main():
     active_backups = []
     backup_files_list = entry.get("backup_files", [])
     if backup_files_list and isinstance(backup_files_list, list):
-        active_backups = file_handler.backup(
-            config.base_dir, config.regvapor_dir, backup_files_list
-        )
+        active_backups = file_handler.backup(config.base_dir, backup_files_list)
 
     try:
         registry.set_key(config.base_dir, config.backup_dir, entry)
@@ -98,7 +96,7 @@ def main():
             file_handler.restore(active_backups)
 
         if font_loaded and font_path:
-            font.unload(font_path, config.regvapor_dir)
+            font.unload(font_path)
 
 
 if __name__ == "__main__":

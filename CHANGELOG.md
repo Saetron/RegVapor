@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bumped `actions/github-script` from v7 to v9 in `block_registry_pr.yml`.
 - Bumped `softprops/action-gh-release` from v2 to v3 in `build_launcher.yml`.
 - Converted release creation GitHub Actions workflow (`build_launcher.yml`) to run exclusively on manual trigger (`workflow_dispatch`).
+- Refactored and optimized `launcher/` modules (`RegVapor.py`, `file_handler.py`, `font_loader.py`, `gui.py`, `registry_handler.py`, `updater.py`, `utils.py`, `vapor_utils.py`) to eliminate redundant file I/O, unused parameters, and repeated string conversions.
+- Expanded `.github/scripts/validate_json.py` to validate `key_path`, `game_exe`, and `custom_font` types.
+
+### Fixed
+- Fixed unreachable offline configuration fallback logic in `vapor_utils.fetch_and_cache_config`.
+- Fixed open file handle race condition when launching `cleanup_updater.bat` in `updater.py`.
+- Fixed GDI font handle resource leak on dialog close in `gui.select_game_id_gui`.
 
 ### Removed
 - Removed pre-commit configuration (`.pre-commit-config.yaml`) and CI check workflow (`.github/workflows/pre-commit.yml`).
