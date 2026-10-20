@@ -42,7 +42,7 @@ jobs:
           pyinstaller --noconsole --onefile --name=RegVapor_updater launcher/updater.py
 
       - name: Create Tag and GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ env.LAUNCHER_VERSION }}
           name: RegVapor Launcher v${{ env.LAUNCHER_VERSION }}
