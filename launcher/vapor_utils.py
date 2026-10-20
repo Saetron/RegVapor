@@ -1,13 +1,18 @@
-import sys
-import config
 import json
 import subprocess
+import sys
 import urllib.request
+import config
 import gui
 from utils import log_message as log
 
 
-def check_for_updates(master_config: dict):
+def _parse_version(v_str: str) -> list[int]:
+    clean_v = "".join(c for c in v_str if c.isdigit() or c == ".")
+    return [int(x) for x in clean_v.split(".") if x]
+
+
+def check_for_updates(master_config: dict) -> None:
     remote_version = master_config.get("__metadata__", {}).get(
         "latest_launcher_version"
     )
@@ -15,13 +20,9 @@ def check_for_updates(master_config: dict):
         log("Update check failed: No remote version found.")
         return
 
-    def parse_ver(v_str):
-        clean_v = "".join(c for c in v_str if c.isdigit() or c == ".")
-        return [int(x) for x in clean_v.split(".")]
-
     try:
-        remote_parsed = parse_ver(remote_version)
-        local_parsed = parse_ver(config.__version__)
+        remote_parsed = _parse_version(remote_version)
+        local_parsed = _parse_version(config.__version__)
         log(
             "Checking updates: Remote v{}, Local v{}",
             remote_version,
@@ -38,23 +39,23 @@ def check_for_updates(master_config: dict):
         "Would you like to update now? (This will download the latest version and restart the launcher.)"
     )
 
-    ans = gui.show_info_message(msg, title="RegVapor Launcher - Update Available")
-
-    if ans:
+    if gui.show_info_message(msg, title="RegVapor Launcher - Update Available"):
         target_exe = sys.argv[0]
         updater_exe = config.base_dir / "RegVapor_updater.exe"
-        urllib.request.urlretrieve(config.GITHUB_UPDATER_URL, updater_exe)
-        subprocess.Popen(
-            [str(updater_exe), target_exe, str(config.base_dir)], shell=False
-        )
-        sys.exit()
+        try:
+            urllib.request.urlretrieve(config.GITHUB_UPDATER_URL, updater_exe)
+            subprocess.Popen(
+                [str(updater_exe), target_exe, str(config.base_dir)], shell=False
+            )
+            sys.exit()
+        except Exception as e:
+            log("Failed to download or start updater: {}", e)
 
 
 def read_saved_game_id() -> str | None:
     """Checks if a game_id.txt exists and returns its contents if valid."""
     if config.id_file.exists():
-        with open(config.id_file, "r", encoding="utf-8") as f:
-            current_id = f.read().strip()
+        current_id = config.id_file.read_text(encoding="utf-8").strip()
         if current_id and current_id != "ENTER_GAME_ID_HERE":
             return current_id
     return None
@@ -62,22 +63,20 @@ def read_saved_game_id() -> str | None:
 
 def fetch_and_cache_config(target_game_id: str | None, master_config: dict) -> dict:
     """
-    Attempts to fetch the database from GitHub.
-    - If target_game_id is known, caches ONLY that game's data to RegVapor_game.json.
-    - If target_game_id is unknown (first run), returns the full database so the user can choose.
-    - If offline, falls back to the local RegVapor_game.json.
+    Resolves the game configuration database.
+    - If master_config was fetched from GitHub and target_game_id is known, caches ONLY that game's data to RegVapor_game.json.
+    - If master_config was fetched and target_game_id is unknown (first run), returns the full database so the user can choose.
+    - If offline (master_config is empty), falls back to the local RegVapor_game.json.
     """
-
-    # Trying to read the game_registry from GitHub first
-    if target_game_id:
-        if target_game_id in master_config:
+    if master_config:
+        if target_game_id and target_game_id in master_config:
             filtered_data = {target_game_id: master_config[target_game_id]}
-            with open(config.local_json_path, "w", encoding="utf-8") as f:
-                json.dump(filtered_data, f, indent=4)
+            try:
+                with open(config.local_json_path, "w", encoding="utf-8") as f:
+                    json.dump(filtered_data, f, indent=4)
+            except Exception as e:
+                log("Failed to write local backup cache: {}", e)
             return filtered_data
-        else:
-            return master_config
-    else:
         return master_config
 
     # Offline fallback logic
@@ -95,8 +94,7 @@ def fetch_and_cache_config(target_game_id: str | None, master_config: dict) -> d
 def get_master_config() -> dict:
     try:
         with urllib.request.urlopen(config.GITHUB_JSON_URL, timeout=5) as response:
-            full_data = json.loads(response.read().decode())
-        return full_data
+            return json.loads(response.read().decode("utf-8"))
     except Exception as e:
         log("Network offline or GitHub unreachable ({})", e)
         return {}

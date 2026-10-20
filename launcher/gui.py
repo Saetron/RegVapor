@@ -1,22 +1,29 @@
 import ctypes
 from ctypes import wintypes
 
-# Made with the help of Gemini
-
 # Windows API Constants & Type Definitions for Raw UI Drawing
-GWL_USERDATA = -21
+WM_DESTROY = 0x0002
+WM_SETFONT = 0x0030
 WM_INITDIALOG = 0x0110
 WM_COMMAND = 0x0111
 CB_ADDSTRING = 0x0143
-CB_SETCURSEL = 0x014E
 CB_GETCURSEL = 0x0147
 CB_GETLBTEXT = 0x0148
+CB_GETLBTEXTLEN = 0x0149
+CB_SETCURSEL = 0x014E
 CBS_DROPDOWNLIST = 0x0003
 WS_CHILD = 0x40000000
 WS_VISIBLE = 0x10000000
 WS_TABSTOP = 0x00010000
 
-# Using ctypes to prevent Windowmanager issuess with games like Guilty The Sin
+IDOK = 1
+IDCANCEL = 2
+IDYES = 6
+MB_YESNO = 0x04
+MB_ICONERROR = 0x10
+MB_ICONINFORMATION = 0x40
+
+# Using ctypes to prevent WindowManager issues with games like Guilty The Sin
 WndProcType = ctypes.WINFUNCTYPE(
     ctypes.c_ssize_t, wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM
 )
@@ -34,10 +41,11 @@ class DLGTEMPLATE(ctypes.Structure):
     ]
 
 
-def select_game_id_gui(available_ids: list) -> str | None:
-    user32 = ctypes.windll.user32  # noqa: F841
-    gdi32 = ctypes.windll.gdi32  # noqa: F841
-    chosen_id = [None]
+def select_game_id_gui(available_ids: list[str]) -> str | None:
+    user32 = ctypes.windll.user32
+    gdi32 = ctypes.windll.gdi32
+    chosen_id: list[str | None] = [None]
+    h_font_ref: list[int] = [0]
 
     @WndProcType
     def dialog_proc(hwnd, msg, wparam, lparam):
@@ -62,8 +70,12 @@ def select_game_id_gui(available_ids: list) -> str | None:
             h_font = gdi32.CreateFontW(
                 15, 0, 0, 0, 400, False, False, False, 1, 0, 0, 0, 0, "Segoe UI"
             )
+            h_font_ref[0] = h_font
 
-            label_text = "No local configuration profile found.\nSelect a configuration from the profile list:"
+            label_text = (
+                "No local configuration profile found.\n"
+                "Select a configuration from the profile list:"
+            )
             h_label = user32.CreateWindowExW(
                 0,
                 "Static",
@@ -78,7 +90,7 @@ def select_game_id_gui(available_ids: list) -> str | None:
                 0,
                 0,
             )
-            user32.SendMessageW(h_label, 0x0030, h_font, 1)
+            user32.SendMessageW(h_label, WM_SETFONT, h_font, 1)
 
             h_combo = user32.CreateWindowExW(
                 0,
@@ -94,7 +106,7 @@ def select_game_id_gui(available_ids: list) -> str | None:
                 0,
                 0,
             )
-            user32.SendMessageW(h_combo, 0x0030, h_font, 1)
+            user32.SendMessageW(h_combo, WM_SETFONT, h_font, 1)
 
             for game_id in available_ids:
                 user32.SendMessageW(h_combo, CB_ADDSTRING, 0, game_id)
@@ -110,32 +122,37 @@ def select_game_id_gui(available_ids: list) -> str | None:
                 100,
                 26,
                 hwnd,
-                1,
+                IDOK,
                 0,
                 0,
             )
-            user32.SendMessageW(h_button, 0x0030, h_font, 1)
+            user32.SendMessageW(h_button, WM_SETFONT, h_font, 1)
 
             user32.SetFocus(h_combo)
             return 0
 
-        elif msg == WM_COMMAND:
+        if msg == WM_COMMAND:
             loword_wparam = wparam & 0xFFFF
-            if loword_wparam == 1:
+            if loword_wparam == IDOK:
                 h_combo = user32.GetDlgItem(hwnd, 101)
                 idx = user32.SendMessageW(h_combo, CB_GETCURSEL, 0, 0)
                 if idx != -1:
-                    length = user32.SendMessageW(h_combo, 0x0149, idx, 0)
+                    length = user32.SendMessageW(h_combo, CB_GETLBTEXTLEN, idx, 0)
                     buffer = ctypes.create_unicode_buffer(length + 1)
                     user32.SendMessageW(
                         h_combo, CB_GETLBTEXT, idx, ctypes.byref(buffer)
                     )
                     chosen_id[0] = buffer.value
-                user32.EndDialog(hwnd, 1)
+                user32.EndDialog(hwnd, IDOK)
                 return 1
-            elif loword_wparam == 2:
+            if loword_wparam == IDCANCEL:
                 user32.EndDialog(hwnd, 0)
                 return 1
+
+        if msg == WM_DESTROY and h_font_ref[0]:
+            gdi32.DeleteObject(h_font_ref[0])
+            h_font_ref[0] = 0
+
         return 0
 
     dialog_template = DLGTEMPLATE(
@@ -146,12 +163,12 @@ def select_game_id_gui(available_ids: list) -> str | None:
     return chosen_id[0]
 
 
-def show_error_message(message: str):
-    user32 = ctypes.windll.user32
-    user32.MessageBoxW(0, message, "RegVapor Launcher - Error", 0x10 | 0x0)
+def show_error_message(message: str) -> None:
+    ctypes.windll.user32.MessageBoxW(0, message, "RegVapor Launcher - Error", MB_ICONERROR)
 
 
-def show_info_message(message: str, title: str = "RegVapor Launcher - Info"):
-    user32 = ctypes.windll.user32  # noqa: F841
-    ans = ctypes.windll.user32.MessageBoxW(0, message, title, 0x04 | 0x40)
-    return ans == 6
+def show_info_message(message: str, title: str = "RegVapor Launcher - Info") -> bool:
+    ans = ctypes.windll.user32.MessageBoxW(
+        0, message, title, MB_YESNO | MB_ICONINFORMATION
+    )
+    return ans == IDYES
