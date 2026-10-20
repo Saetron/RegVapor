@@ -61,33 +61,58 @@ def read_saved_game_id() -> str | None:
     return None
 
 
+def _cache_game_profile(target_game_id: str, source_config: dict) -> dict:
+    """Caches a single game's configuration to local_json_path and returns it."""
+    filtered_data = {target_game_id: source_config[target_game_id]}
+    try:
+        with open(config.local_json_path, "w", encoding="utf-8") as f:
+            json.dump(filtered_data, f, indent=4)
+    except Exception as e:
+        log("Failed to write local backup cache: {}", e)
+    return filtered_data
+
+
 def fetch_and_cache_config(target_game_id: str | None, master_config: dict) -> dict:
     """
     Resolves the game configuration database.
     - If master_config was fetched from GitHub and target_game_id is known, caches ONLY that game's data to RegVapor_game.json.
     - If master_config was fetched and target_game_id is unknown (first run), returns the full database so the user can choose.
-    - If offline (master_config is empty), falls back to the local RegVapor_game.json.
+    - If offline (master_config is empty), falls back to local RegVapor_game.json, and then to the bundled game_registry.json.
     """
     if master_config:
         if target_game_id and target_game_id in master_config:
-            filtered_data = {target_game_id: master_config[target_game_id]}
-            try:
-                with open(config.local_json_path, "w", encoding="utf-8") as f:
-                    json.dump(filtered_data, f, indent=4)
-            except Exception as e:
-                log("Failed to write local backup cache: {}", e)
-            return filtered_data
+            return _cache_game_profile(target_game_id, master_config)
         return master_config
 
-    # Offline fallback logic
-    if config.local_json_path.exists():
+    # 1. Offline fallback: local cached RegVapor_game.json (when a game_id is already configured)
+    if target_game_id and config.local_json_path.exists():
         try:
             with open(config.local_json_path, "r", encoding="utf-8") as f:
                 local_data = json.load(f)
-            log("Loaded cached fallback configuration from: {}", config.LOCAL_JSON_NAME)
-            return local_data
+            if target_game_id in local_data:
+                log(
+                    "Loaded cached fallback configuration from: {}",
+                    config.LOCAL_JSON_NAME,
+                )
+                return local_data
         except Exception as e:
             log("Failed to read local fallback {}: {}", config.LOCAL_JSON_NAME, e)
+
+    # 2. Offline fallback: bundled game_registry.json (supports full offline first-run & profile switching)
+    if config.bundled_json_path.exists():
+        try:
+            with open(config.bundled_json_path, "r", encoding="utf-8") as f:
+                bundled_data = json.load(f)
+            log(
+                "Loaded bundled fallback configuration from: {}",
+                config.BUNDLED_JSON_NAME,
+            )
+            if target_game_id and target_game_id in bundled_data:
+                return _cache_game_profile(target_game_id, bundled_data)
+            return bundled_data
+        except Exception as e:
+            log("Failed to read bundled fallback {}: {}", config.BUNDLED_JSON_NAME, e)
+
     return {}
 
 

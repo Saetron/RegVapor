@@ -15,6 +15,7 @@ GITHUB_UPDATER_URL = (
 
 REGVAPOR_DIR_NAME = "RegVapor"
 LOCAL_JSON_NAME = "RegVapor_game.json"
+BUNDLED_JSON_NAME = "game_registry.json"
 ID_FILE_NAME = "game_id.txt"
 BACKUP_DIR_NAME = "registry"
 LOGFILE = "RegVapor.log"
@@ -26,3 +27,7 @@ regvapor_dir = base_dir / REGVAPOR_DIR_NAME
 backup_dir = regvapor_dir / BACKUP_DIR_NAME
 local_json_path = regvapor_dir / LOCAL_JSON_NAME
 id_file = regvapor_dir / ID_FILE_NAME
+
+# Path to bundled game_registry.json (PyInstaller _MEIPASS or repo root when running from source)
+bundle_dir = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
+bundled_json_path = bundle_dir / BUNDLED_JSON_NAME

@@ -35,7 +35,7 @@ jobs:
 
       - name: Compile to Executable with PyInstaller
         run: |
-          pyinstaller --noconsole --onefile --name=RegVapor launcher/RegVapor.py
+          pyinstaller --noconsole --onefile --add-data "game_registry.json:." --name=RegVapor launcher/RegVapor.py
 
       - name: Compile Updater Executable
         run: |

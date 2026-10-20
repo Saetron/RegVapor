@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added `AGENTS.md` providing development guidelines and mandatory practices for AI coding agents.
 - Added Dependabot configuration (`.github/dependabot.yml`) for tracking GitHub Actions workflow updates.
+- Bundled `game_registry.json` into the compiled `RegVapor.exe` release via PyInstaller (`--add-data`) as an embedded fallback for full offline support (including first-run profile selection).
 
 ### Changed
 - Bumped `actions/checkout` from v4 to v7 across CI workflows.

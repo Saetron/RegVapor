@@ -119,9 +119,9 @@ Each profile inside `registry_src/` must be a valid JSON file with the following
   Updating `__version__` will propagate to the launcher UI, logs, generated metadata, and release tags.
 - **Logging**: Use `utils.log_message(msg, *args)` instead of raw `print` statements in the launcher codebase.
 - **Executable Compilation**:
-  Executable releases are built using PyInstaller on Windows:
+  Executable releases are built using PyInstaller on Windows (bundling `game_registry.json` as an embedded offline fallback):
   ```bash
-  pyinstaller --noconsole --onefile --name=RegVapor launcher/RegVapor.py
+  pyinstaller --noconsole --onefile --add-data "game_registry.json:." --name=RegVapor launcher/RegVapor.py
   pyinstaller --noconsole --onefile --name=RegVapor_updater launcher/updater.py
   ```
   The GitHub Action workflow (`.github/workflows/build_launcher.yml`) is triggered manually via `workflow_dispatch`.
